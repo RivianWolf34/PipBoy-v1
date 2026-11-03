@@ -75,27 +75,36 @@
                     <!-- Columna Derecha: Reloj Gigante + 6 Widgets Simétricos -->
                     <div class="stats-info-column">
                         
-                        <!-- BRÚJULA TÁCTICA ESTILO HUD (IDÉNTICA AL JUEGO + WAYPOINT) -->
-                        <div class="pip-compass-container">
-                            <button id="btn-add-waypoint" style="position: absolute; left: 0; top: -6px; background: transparent; border: 1px solid var(--verde-oscuro); color: var(--verde-pipboy); font-size: 0.6rem; cursor: pointer; padding: 1px 4px; line-height: 1; z-index: 10;" title="SET WAYPOINT">[+] NAV</button>
-                            <!-- Barra delimitadora superior con botón NAV y marcador central -->
-                            <div class="compass-top-bar">
-                                <div class="compass-center-pointer">▼</div>
-                            </div>
+                        <!-- SECCIÓN DE NAVEGACIÓN Y BRÚJULA TÁCTICA -->
+                        <div style="width: 100%; position: relative;">
                             
-                            <!-- Cinta deslizante con desvanecimiento, línea central y Waypoint -->
-                            <div class="compass-strip-wrapper" id="compass-wrapper">
-                                <!-- Marcador de misión (Waypoint) oculto por defecto -->
-                                <div id="quest-marker" style="position: absolute; left: 50%; top: 3px; font-size: 0.85rem; color: #ffcc00; text-shadow: 0 0 6px #ffcc00; transition: transform 0.1s linear; display: none; z-index: 5;">◈</div>
+                            <!-- Botón NAV independiente (fuera de la zona de compresión) -->
+                            <div style="display: flex; justify-content: flex-start; margin-bottom: 4px;">
+                                <button id="btn-add-waypoint" style="background: rgba(0, 20, 0, 0.6); border: 1px solid var(--verde-oscuro); color: var(--verde-pipboy); font-size: 0.65rem; cursor: pointer; padding: 2px 6px; font-family: inherit; transition: all 0.2s;" title="SET WAYPOINT">[+] NAV</button>
+                            </div>
+
+                            <!-- BRÚJULA TÁCTICA ESTILO HUD -->
+                            <div class="pip-compass-container">
+                                <!-- Barra delimitadora superior con el marcador central -->
+                                <div class="compass-top-bar">
+                                    <div class="compass-center-pointer">▼</div>
+                                </div>
                                 
-                                <!-- Cinta calibrada matemáticamente con 8 puntos cardinales (45° de separación) -->
-                                <div class="compass-strip" id="pip-compass-strip">
-                                    <span>N</span><span>NE</span><span>E</span><span>SE</span><span>S</span><span>SW</span><span>W</span><span>NW</span>
-                                    <span>N</span><span>NE</span><span>E</span><span>SE</span><span>S</span><span>SW</span><span>W</span><span>NW</span>
-                                    <span>N</span><span>NE</span><span>E</span><span>SE</span><span>S</span><span>SW</span><span>W</span><span>NW</span>
-                                    <span>N</span><span>NE</span><span>E</span><span>SE</span><span>S</span><span>SW</span><span>W</span><span>NW</span>
+                                <!-- Cinta deslizante con desvanecimiento, línea central y Waypoint -->
+                                <div class="compass-strip-wrapper" id="compass-wrapper">
+                                    <!-- Marcador de misión (Waypoint) oculto por defecto -->
+                                    <div id="quest-marker" style="position: absolute; left: 50%; top: 3px; font-size: 0.85rem; color: #ffcc00; text-shadow: 0 0 6px #ffcc00; transition: transform 0.1s linear; display: none; z-index: 5;">◈</div>
+                                    
+                                    <!-- Cinta calibrada matemáticamente -->
+                                    <div class="compass-strip" id="pip-compass-strip">
+                                        <span>N</span><span>NE</span><span>E</span><span>SE</span><span>S</span><span>SW</span><span>W</span><span>NW</span>
+                                        <span>N</span><span>NE</span><span>E</span><span>SE</span><span>S</span><span>SW</span><span>W</span><span>NW</span>
+                                        <span>N</span><span>NE</span><span>E</span><span>SE</span><span>S</span><span>SW</span><span>W</span><span>NW</span>
+                                        <span>N</span><span>NE</span><span>E</span><span>SE</span><span>S</span><span>SW</span><span>W</span><span>NW</span>
+                                    </div>
                                 </div>
                             </div>
+                            
                         </div>
 
                         <!-- PRIMERA FILA: Cronómetro Táctico, Odómetro y Clima (3 Widgets) -->
