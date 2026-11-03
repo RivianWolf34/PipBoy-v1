@@ -1434,12 +1434,12 @@ body {
 .compass-strip {
     display: flex;
     position: absolute;
-    left: 0;
+    left: 50%; /* Anclaje maestro exactamente al centro de la pantalla */
     white-space: nowrap;
     will-change: transform;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     font-weight: bold;
-    letter-spacing: 16px;
+    letter-spacing: 2px;
     color: var(--verde-pipboy);
     text-shadow: 0 0 5px rgba(29, 242, 59, 0.6);
     align-items: center;
@@ -1448,7 +1448,8 @@ body {
 .compass-strip span {
     display: inline-block;
     text-align: center;
-    min-width: 65px;
+    width: 60px; /* Ancho matemático rígido para cálculo de píxeles exactos */
+    flex-shrink: 0;
 }
 
 /* =====================================================

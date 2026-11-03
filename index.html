@@ -77,9 +77,9 @@
                         
                         <!-- BRÚJULA TÁCTICA ESTILO HUD (IDÉNTICA AL JUEGO + WAYPOINT) -->
                         <div class="pip-compass-container">
+                            <button id="btn-add-waypoint" style="position: absolute; left: 0; top: -6px; background: transparent; border: 1px solid var(--verde-oscuro); color: var(--verde-pipboy); font-size: 0.6rem; cursor: pointer; padding: 1px 4px; line-height: 1; z-index: 10;" title="SET WAYPOINT">[+] NAV</button>
                             <!-- Barra delimitadora superior con botón NAV y marcador central -->
                             <div class="compass-top-bar">
-                                <button id="btn-add-waypoint" style="position: absolute; left: 0; top: -6px; background: transparent; border: 1px solid var(--verde-oscuro); color: var(--verde-pipboy); font-size: 0.6rem; cursor: pointer; padding: 1px 4px; line-height: 1; z-index: 10;" title="SET WAYPOINT">[+] NAV</button>
                                 <div class="compass-center-pointer">▼</div>
                             </div>
                             
@@ -88,10 +88,12 @@
                                 <!-- Marcador de misión (Waypoint) oculto por defecto -->
                                 <div id="quest-marker" style="position: absolute; left: 50%; top: 3px; font-size: 0.85rem; color: #ffcc00; text-shadow: 0 0 6px #ffcc00; transition: transform 0.1s linear; display: none; z-index: 5;">◈</div>
                                 
+                                <!-- Cinta calibrada matemáticamente con 8 puntos cardinales (45° de separación) -->
                                 <div class="compass-strip" id="pip-compass-strip">
-                                    <span>N</span><span>30</span><span>60</span><span>NE</span><span>120</span><span>150</span><span>E</span><span>210</span><span>240</span><span>SE</span><span>300</span><span>330</span>
-                                    <span>N</span><span>30</span><span>60</span><span>NE</span><span>120</span><span>150</span><span>E</span><span>210</span><span>240</span><span>SE</span><span>300</span><span>330</span>
-                                    <span>N</span><span>30</span><span>60</span><span>NE</span><span>120</span><span>150</span><span>E</span><span>210</span><span>240</span><span>SE</span><span>300</span><span>330</span>
+                                    <span>N</span><span>NE</span><span>E</span><span>SE</span><span>S</span><span>SW</span><span>W</span><span>NW</span>
+                                    <span>N</span><span>NE</span><span>E</span><span>SE</span><span>S</span><span>SW</span><span>W</span><span>NW</span>
+                                    <span>N</span><span>NE</span><span>E</span><span>SE</span><span>S</span><span>SW</span><span>W</span><span>NW</span>
+                                    <span>N</span><span>NE</span><span>E</span><span>SE</span><span>S</span><span>SW</span><span>W</span><span>NW</span>
                                 </div>
                             </div>
                         </div>

@@ -322,39 +322,57 @@ document.addEventListener('DOMContentLoaded', () => {
         moverCintaYMarcador(azimutCorregido);
     }
 
+    // HERRAMIENTA DE DIAGNÓSTICO DE CALIBRACIÓN:
+    // Puedes probar la brújula en tu PC o celular sin moverte.
+    // Solo abre la consola del navegador y escribe: window.testBrujula(90) -> Apuntará a la 'E' exacta.
+    window.testBrujula = function(grados) {
+        console.log(`Calibrando brújula a ${grados}°...`);
+        moverCintaYMarcador(grados);
+    };
+
     function moverCintaYMarcador(gradosActuales) {
         if (!compassStrip) return;
         
-        // 1. Mueve la cinta de la brújula
-        const ancho360 = compassStrip.scrollWidth / 3;
-        const desplazamientoPx = (gradosActuales / 360) * ancho360;
-        compassStrip.style.transform = `translateX(${-desplazamientoPx}px)`;
+        // CALIBRACIÓN MATEMÁTICA ESTRICTA
+        const spanWidth = 60; // Coincide con el CSS
+        const spansPerBlock = 8; // (N, NE, E, SE, S, SW, W, NW)
+        const blockWidth = spanWidth * spansPerBlock; // 480px = 360 grados
+        const pxPorGrado = blockWidth / 360;
+        
+        // Usamos el Bloque 2 como centro para tener margen infinito hacia ambos lados.
+        // offsetCentroN es la distancia exacta al centro visual de la letra 'N' del Bloque 2.
+        const offsetCentroN = blockWidth + (spanWidth / 2);
+        
+        // Desplazamiento final en píxeles
+        const desplazamientoPx = offsetCentroN + (gradosActuales * pxPorGrado);
+        
+        // Aplicamos el movimiento (usamos transform en negativo porque la cinta va hacia la izquierda)
+        compassStrip.style.transform = `translateX(-${desplazamientoPx}px)`;
 
-        // 2. Procesa la posición del Marcador (Waypoint)
+        // --- CÁLCULO DEL WAYPOINT (Marcador ◈) ---
         if (targetCoords && window.pipCurrentLat !== null && questMarker && compassWrapper) {
             const anguloObjetivo = calcularRumboObjetivo(window.pipCurrentLat, window.pipCurrentLon, targetCoords.lat, targetCoords.lon);
             let diferenciaAngulo = anguloObjetivo - gradosActuales;
 
-            // Normaliza la diferencia para saber si está a la izquierda o derecha por el camino más corto
+            // Encontrar el camino más corto
             if (diferenciaAngulo > 180) diferenciaAngulo -= 360;
             if (diferenciaAngulo < -180) diferenciaAngulo += 360;
 
-            const pxPorGrado = ancho360 / 360;
             let offsetPx = diferenciaAngulo * pxPorGrado;
-            
-            // Limita el marcador a los bordes de la pantalla (como en Fallout cuando el objetivo está a tus espaldas)
             const limiteMaximo = (compassWrapper.clientWidth / 2) - 15;
 
+            // Limitar a los bordes si está fuera del campo visual
             if (offsetPx > limiteMaximo) {
                 offsetPx = limiteMaximo;
-                questMarker.style.opacity = '0.4'; // Transparente si está lejos a la derecha
+                questMarker.style.opacity = '0.4';
             } else if (offsetPx < -limiteMaximo) {
                 offsetPx = -limiteMaximo;
-                questMarker.style.opacity = '0.4'; // Transparente si está lejos a la izquierda
+                questMarker.style.opacity = '0.4';
             } else {
-                questMarker.style.opacity = '1'; // Sólido si lo tienes de frente
+                questMarker.style.opacity = '1';
             }
 
+            // Anclamos al centro geométrico (50%) y le sumamos el desplazamiento del radar
             questMarker.style.transform = `translateX(calc(-50% + ${offsetPx}px))`;
             questMarker.style.display = 'block';
         } else if (questMarker) {
