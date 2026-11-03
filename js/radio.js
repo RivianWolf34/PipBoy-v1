@@ -281,7 +281,31 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function sintonizarEstacion(nombre, urlStream) {
-        // Disparar el sonido característico de señal encontrada al sintonizar una estación
+        // 1. ESCUDO PREVENTIVO PARA MÓVILES
+        // Detecta si es celular. Si es celular y la URL es http://, la bloqueamos ANTES de que Chrome se entere y rompa la pantalla.
+        const esCelular = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        if (esCelular && urlStream.startsWith('http://')) {
+            if (typeof window.reproducirSonido === 'function') window.reproducirSonido('ui_menu_cancel.wav');
+            
+            if (estadoReproduccion) estadoReproduccion.textContent = "[ BLOCKED ]";
+            if (nombreCancion) {
+                nombreCancion.textContent = `${nombre.toUpperCase()} [INSECURE SIGNAL BLOCKED]`;
+                setTimeout(window.verificarYActivarMarquees, 100);
+                
+                // Limpieza automática a los 4 segundos sin romper la interfaz
+                setTimeout(() => {
+                    if (estadoReproduccion && estadoReproduccion.textContent === "[ BLOCKED ]") {
+                        estadoReproduccion.textContent = "[ OFF ]";
+                        nombreCancion.textContent = "WAITING FOR SIGNAL...";
+                        if (typeof window.verificarYActivarMarquees === 'function') window.verificarYActivarMarquees();
+                    }
+                }, 4000);
+            }
+            return; // Cortamos la ejecución. El audio nunca se carga y Chrome no lanza su alerta.
+        }
+
+        // 2. EJECUCIÓN NORMAL (Para PC o para estaciones HTTPS en móvil)
         if (typeof window.reproducirSonido === 'function') {
             window.reproducirSonido('ui_radio_signalfound.wav');
         }
@@ -311,15 +335,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.conectarOsciloscopio(radioSatelital, true);
             }
         }).catch(err => {
-            console.warn("Stream bloqueado por seguridad móvil o CORS:", err);
-            if (estadoReproduccion) estadoReproduccion.textContent = "[ SIGNAL BLOCKED ]";
+            console.warn("Stream falló o formato inválido:", err);
+            if (estadoReproduccion) estadoReproduccion.textContent = "[ ERROR ]";
             if (nombreCancion) {
-                nombreCancion.textContent = `${nombre.toUpperCase()} (UNREACHABLE ON MOBILE)`;
+                nombreCancion.textContent = `${nombre.toUpperCase()} [UPLINK FAILED]`;
                 setTimeout(window.verificarYActivarMarquees, 100);
                 
-                // AUTOLIMPIEZA TÁCTICA: Restablece la interfaz automáticamente a los 4 segundos en móvil
+                // Limpieza automática estándar si el stream está caído
                 setTimeout(() => {
-                    if (estadoReproduccion && estadoReproduccion.textContent === "[ SIGNAL BLOCKED ]") {
+                    if (estadoReproduccion && estadoReproduccion.textContent === "[ ERROR ]") {
                         estadoReproduccion.textContent = "[ OFF ]";
                         nombreCancion.textContent = "WAITING FOR SIGNAL...";
                         if (typeof window.verificarYActivarMarquees === 'function') window.verificarYActivarMarquees();

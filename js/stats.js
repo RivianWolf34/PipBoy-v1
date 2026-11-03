@@ -234,29 +234,179 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // ==========================================
-    // 5. NAVEGACIÓN OFFLINE (BRÚJULA Y ODÓMETRO)
+    // 5. BRÚJULA DESLIZANTE, WAYPOINT OFFLINE Y ODÓMETRO
     // ==========================================
     
-    // --- BRÚJULA ESTILO RADAR VIRTUAL ---
     const compassStrip = document.getElementById('pip-compass-strip');
+    const btnNav = document.getElementById('btn-add-waypoint');
+    const questMarker = document.getElementById('quest-marker');
+    const compassWrapper = document.getElementById('compass-wrapper');
 
-    if (window.DeviceOrientationEvent) {
-        window.addEventListener('deviceorientationabsolute', (e) => {
-            const heading = e.alpha !== null ? 360 - e.alpha : null;
-            if (heading !== null) moverCintaBrujula(heading);
-        }, true);
-        
-        window.addEventListener('deviceorientation', (e) => {
-            const heading = e.webkitCompassHeading !== undefined ? e.webkitCompassHeading : (e.alpha !== null ? 360 - e.alpha : null);
-            if (heading !== null) moverCintaBrujula(heading);
+    // Variables globales de posición y objetivo
+    window.pipCurrentLat = null;
+    window.pipCurrentLon = null;
+    let targetCoords = JSON.parse(localStorage.getItem('pip_waypoint')) || null;
+
+    // Lógica para añadir coordenadas con el botón [NAV]
+    if (btnNav) {
+        btnNav.addEventListener('click', () => {
+            if (window.reproducirSonido) window.reproducirSonido('ui_menu_ok.wav');
+            const input = prompt("ENTER TARGET COORDINATES (LAT, LON)\nLeave empty to clear waypoint.\nExample: 19.0414, -98.2063", targetCoords ? `${targetCoords.lat}, ${targetCoords.lon}` : "");
+            
+            if (input === null) return; // Cancelado
+            
+            if (input.trim() === "") {
+                targetCoords = null;
+                localStorage.removeItem('pip_waypoint');
+                if (questMarker) questMarker.style.display = 'none';
+                alert("WAYPOINT CLEARED");
+            } else {
+                const partes = input.split(',');
+                if (partes.length === 2) {
+                    const lat = parseFloat(partes[0].trim());
+                    const lon = parseFloat(partes[1].trim());
+                    if (!isNaN(lat) && !isNaN(lon)) {
+                        targetCoords = { lat, lon };
+                        localStorage.setItem('pip_waypoint', JSON.stringify(targetCoords));
+                        alert("WAYPOINT SET");
+                    } else {
+                        alert("INVALID COORDS FORMAT.");
+                    }
+                }
+            }
         });
     }
 
-    function moverCintaBrujula(grados) {
+    // Fórmula matemática offline para calcular en qué ángulo está un objetivo (Bearing)
+    function calcularRumboObjetivo(lat1, lon1, lat2, lon2) {
+        const toRad = (deg) => deg * Math.PI / 180;
+        const toDeg = (rad) => rad * 180 / Math.PI;
+        
+        const dLon = toRad(lon2 - lon1);
+        const y = Math.sin(dLon) * Math.cos(toRad(lat2));
+        const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) - Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon);
+        
+        return (toDeg(Math.atan2(y, x)) + 360) % 360;
+    }
+
+    // --- MANEJO DE LA ORIENTACIÓN Y EL GIROSCOPIO (Corrección de Inversión) ---
+    if (window.DeviceOrientationEvent) {
+        window.addEventListener('deviceorientationabsolute', (e) => {
+            procesarOrientacionInteligente(e.alpha, e.beta, e.gamma);
+        }, true);
+        
+        window.addEventListener('deviceorientation', (e) => {
+            const heading = e.webkitCompassHeading !== undefined ? e.webkitCompassHeading : null;
+            if (heading !== null) moverCintaYMarcador(heading);
+        });
+    }
+
+    function procesarOrientacionInteligente(alpha, beta, gamma) {
+        if (alpha === null) return;
+        
+        // Detecta dinámicamente si el celular está volteado a la izquierda (+90) o a la derecha (-90)
+        let anguloPantalla = (window.screen && window.screen.orientation && window.screen.orientation.angle) || window.orientation || 0;
+        let azimutCorregido = alpha;
+
+        if (beta !== null && gamma !== null) {
+            if (anguloPantalla === 90 || anguloPantalla === -270) {
+                azimutCorregido = alpha - 90; // Volteado a la izquierda
+            } else if (anguloPantalla === -90 || anguloPantalla === 270) {
+                azimutCorregido = alpha + 90; // Volteado a la derecha
+            }
+        }
+        
+        if (azimutCorregido < 0) azimutCorregido += 360;
+        if (azimutCorregido >= 360) azimutCorregido -= 360;
+
+        moverCintaYMarcador(azimutCorregido);
+    }
+
+    function moverCintaYMarcador(gradosActuales) {
         if (!compassStrip) return;
-        // Cada grado equivale a desplazar una cantidad proporcional de pixeles en la cinta infinita
-        const desplazamientoPx = (grados / 360) * (compassStrip.scrollWidth / 3);
+        
+        // 1. Mueve la cinta de la brújula
+        const ancho360 = compassStrip.scrollWidth / 3;
+        const desplazamientoPx = (gradosActuales / 360) * ancho360;
         compassStrip.style.transform = `translateX(${-desplazamientoPx}px)`;
+
+        // 2. Procesa la posición del Marcador (Waypoint)
+        if (targetCoords && window.pipCurrentLat !== null && questMarker && compassWrapper) {
+            const anguloObjetivo = calcularRumboObjetivo(window.pipCurrentLat, window.pipCurrentLon, targetCoords.lat, targetCoords.lon);
+            let diferenciaAngulo = anguloObjetivo - gradosActuales;
+
+            // Normaliza la diferencia para saber si está a la izquierda o derecha por el camino más corto
+            if (diferenciaAngulo > 180) diferenciaAngulo -= 360;
+            if (diferenciaAngulo < -180) diferenciaAngulo += 360;
+
+            const pxPorGrado = ancho360 / 360;
+            let offsetPx = diferenciaAngulo * pxPorGrado;
+            
+            // Limita el marcador a los bordes de la pantalla (como en Fallout cuando el objetivo está a tus espaldas)
+            const limiteMaximo = (compassWrapper.clientWidth / 2) - 15;
+
+            if (offsetPx > limiteMaximo) {
+                offsetPx = limiteMaximo;
+                questMarker.style.opacity = '0.4'; // Transparente si está lejos a la derecha
+            } else if (offsetPx < -limiteMaximo) {
+                offsetPx = -limiteMaximo;
+                questMarker.style.opacity = '0.4'; // Transparente si está lejos a la izquierda
+            } else {
+                questMarker.style.opacity = '1'; // Sólido si lo tienes de frente
+            }
+
+            questMarker.style.transform = `translateX(calc(-50% + ${offsetPx}px))`;
+            questMarker.style.display = 'block';
+        } else if (questMarker) {
+            questMarker.style.display = 'none';
+        }
+    }
+
+    // --- ODÓMETRO (Haversine via GPS) ---
+    const tripDisplay = document.getElementById('trip-distancia');
+    const btnResetTrip = document.getElementById('btn-reset-trip');
+    let totalKM = parseFloat(localStorage.getItem('pip_trip_km')) || 0;
+    let ultimaUbicacion = null;
+
+    if (tripDisplay) tripDisplay.textContent = totalKM.toFixed(2) + ' KM';
+
+    if (btnResetTrip) {
+        btnResetTrip.addEventListener('click', () => {
+            totalKM = 0;
+            localStorage.setItem('pip_trip_km', '0');
+            tripDisplay.textContent = '0.00 KM';
+            if (window.reproducirSonido) window.reproducirSonido('ui_menu_cancel.wav');
+        });
+    }
+
+    function calcularDistancia(lat1, lon1, lat2, lon2) {
+        const R = 6371; 
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                  Math.sin(dLon/2) * Math.sin(dLon/2);
+        return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+    }
+
+    if (navigator.geolocation && tripDisplay) {
+        navigator.geolocation.watchPosition((pos) => {
+            // Guardamos coordenadas actuales globales para que la brújula y el Waypoint las usen
+            window.pipCurrentLat = pos.coords.latitude;
+            window.pipCurrentLon = pos.coords.longitude;
+            
+            if (ultimaUbicacion) {
+                const dist = calcularDistancia(ultimaUbicacion.lat, ultimaUbicacion.lon, window.pipCurrentLat, window.pipCurrentLon);
+                if (dist > 0.005) { // Filtro anti-saltos de 5 metros
+                    totalKM += dist;
+                    localStorage.setItem('pip_trip_km', totalKM.toString());
+                    tripDisplay.textContent = totalKM.toFixed(2) + ' KM';
+                    ultimaUbicacion = { lat: window.pipCurrentLat, lon: window.pipCurrentLon };
+                }
+            } else {
+                ultimaUbicacion = { lat: window.pipCurrentLat, lon: window.pipCurrentLon }; 
+            }
+        }, () => {}, { enableHighAccuracy: true, maximumAge: 5000, timeout: 5000 });
     }
 
 
@@ -332,50 +482,5 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- ODÓMETRO (Haversine via GPS) ---
-    const tripDisplay = document.getElementById('trip-distancia');
-    const btnResetTrip = document.getElementById('btn-reset-trip');
-    let totalKM = parseFloat(localStorage.getItem('pip_trip_km')) || 0;
-    let ultimaUbicacion = null;
-
-    if (tripDisplay) tripDisplay.textContent = totalKM.toFixed(2) + ' KM';
-
-    if (btnResetTrip) {
-        btnResetTrip.addEventListener('click', () => {
-            totalKM = 0;
-            localStorage.setItem('pip_trip_km', '0');
-            tripDisplay.textContent = '0.00 KM';
-            if (window.reproducirSonido) window.reproducirSonido('ui_menu_cancel.wav');
-        });
-    }
-
-    function calcularDistancia(lat1, lon1, lat2, lon2) {
-        const R = 6371; 
-        const dLat = (lat2 - lat1) * Math.PI / 180;
-        const dLon = (lon2 - lon1) * Math.PI / 180;
-        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                  Math.sin(dLon/2) * Math.sin(dLon/2);
-        return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
-    }
-
-    if (navigator.geolocation && tripDisplay) {
-        navigator.geolocation.watchPosition((pos) => {
-            const lat = pos.coords.latitude;
-            const lon = pos.coords.longitude;
-            
-            if (ultimaUbicacion) {
-                const dist = calcularDistancia(ultimaUbicacion.lat, ultimaUbicacion.lon, lat, lon);
-                if (dist > 0.005) { // Filtro anti-saltos de 5 metros
-                    totalKM += dist;
-                    localStorage.setItem('pip_trip_km', totalKM.toString());
-                    tripDisplay.textContent = totalKM.toFixed(2) + ' KM';
-                    ultimaUbicacion = { lat, lon };
-                }
-            } else {
-                ultimaUbicacion = { lat, lon }; 
-            }
-        }, () => {}, { enableHighAccuracy: true, maximumAge: 5000, timeout: 5000 });
-    }
 
 });
