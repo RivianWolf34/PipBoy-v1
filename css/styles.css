@@ -1,0 +1,1481 @@
+/* =====================================================
+   PALETA Y VARIABLES PIP-BOY
+===================================================== */
+:root {
+    --verde-pipboy: #1df23b;
+    --verde-oscuro: #0f4f16;
+    --fondo-terminal: #0a120b;
+    --negro-absoluto: #000000;
+}
+
+/* =====================================================
+   TIPOGRAFÍA MONOFONTO GLOBAL Y RESET GENERAL
+===================================================== */
+@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+* {
+    font-family: 'VT323', monospace, 'Courier New' !important;
+    letter-spacing: 1px;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    user-select: none;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: var(--fondo-terminal);
+    color: var(--verde-pipboy);
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* =====================================================
+   EFECTOS CRT Y PANTALLA ANTIGUA
+===================================================== */
+.scanlines {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+    background-size: 100% 4px, 3px 100%;
+    pointer-events: none;
+    z-index: 100;
+}
+
+.crt-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    box-shadow: inset 0 0 100px rgba(0,0,0,0.9);
+    pointer-events: none;
+    z-index: 99;
+}
+
+.pip-boy-pantalla {
+    width: 100vw !important;
+    height: 100dvh !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 2vh 3.5vw !important;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    animation: textFlicker 0.15s infinite alternate;
+}
+
+@keyframes textFlicker {
+    0% { opacity: 0.95; }
+    100% { opacity: 1; text-shadow: 0 0 4px rgba(29, 242, 59, 0.5); }
+}
+
+/* =====================================================
+   NAVEGACIÓN PRINCIPAL (ESTILO FALLOUT 4)
+===================================================== */
+.pip-nav {
+    width: 100%;
+    display: flex;
+    align-items: flex-end;
+    margin-bottom: 0.5vh;
+}
+
+.nav-btn {
+    position: relative;
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid var(--verde-pipboy);
+    color: var(--verde-oscuro);
+    font-size: clamp(1.1rem, 3.4vmin, 2rem);
+    font-weight: bold;
+    cursor: pointer;
+    padding: 0.8vh 0 1vh 0;
+    transition: color 0.2s ease;
+}
+
+.nav-btn.activo {
+    color: var(--verde-pipboy);
+    text-shadow: 0 0 8px var(--verde-pipboy);
+    border-bottom: 2px solid transparent;
+}
+
+.nav-btn.activo::before,
+.nav-btn.activo::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    width: 18%;
+    height: 60%;
+    border-top: 2px solid var(--verde-pipboy);
+}
+
+.nav-btn.activo::before {
+    left: 0;
+    border-left: 2px solid var(--verde-pipboy);
+}
+
+.nav-btn.activo::after {
+    right: 0;
+    border-right: 2px solid var(--verde-pipboy);
+}
+
+/* =====================================================
+   MÓDULOS DE CONTENIDO GENERALES
+===================================================== */
+.pip-contenido {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+}
+
+.pip-modulo {
+    display: none;
+    height: 100%;
+}
+
+.pip-modulo.activo {
+    display: flex;
+    flex-direction: column;
+}
+
+.sys-texto {
+    font-size: 0.8rem;
+    margin-bottom: 10px;
+    opacity: 0.8;
+}
+
+/* =====================================================
+   ESTILOS ESPECÍFICOS (STATS)
+===================================================== */
+#stats-modulo.activo {
+    justify-content: space-between;
+}
+
+.pip-subnav {
+    display: flex;
+    gap: 3vw;
+    padding: 0.8vh 1vw 1.5vh 1vw;
+    font-size: clamp(0.85rem, 2.5vmin, 1.4rem);
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+.subnav-item {
+    color: var(--verde-oscuro);
+}
+
+.subnav-item.activo {
+    color: var(--verde-pipboy);
+    text-shadow: 0 0 6px var(--verde-pipboy);
+}
+
+.stats-main-grid {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-evenly;
+    gap: 4vw;
+    padding: 0 2vw;
+    width: 100%;
+}
+
+.vb-reticle {
+    position: relative;
+    padding: 3vh 4vw;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.vb-reticle .tick {
+    position: absolute;
+    width: clamp(18px, 3.8vmin, 34px);
+    height: clamp(4px, 0.9vmin, 7px);
+    background: var(--verde-pipboy);
+    box-shadow: 0 0 6px var(--verde-pipboy);
+}
+
+.vb-reticle .tick.top { top: 0; left: 50%; transform: translateX(-50%); }
+.vb-reticle .tick.bottom { bottom: 0; left: 50%; transform: translateX(-50%); }
+.vb-reticle .tick.left-top { left: 0; top: 28%; }
+.vb-reticle .tick.left-bot { left: 0; bottom: 28%; }
+.vb-reticle .tick.right-top { right: 0; top: 28%; }
+.vb-reticle .tick.right-bot { right: 0; bottom: 28%; }
+
+.vaultboy-anim {
+    height: clamp(180px, 48vh, 420px) !important;
+    width: auto;
+    image-rendering: pixelated;
+    filter: grayscale(100%) sepia(100%) hue-rotate(75deg) saturate(500%) contrast(1.5) drop-shadow(0 0 5px var(--verde-pipboy));
+}
+
+/* =====================================================
+   AJUSTE DE TAMAÑO PARA EL RELOJ Y COLUMNA DE STATS
+===================================================== */
+.stats-info-column {
+    flex: 0 1 62%;
+    max-width: 820px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2.5vh;
+}
+
+.pip-clock-box {
+    border-left: clamp(4px, 0.8vmin, 7px) solid var(--verde-pipboy);
+    padding-left: 2vw;
+    width: 100%;
+}
+
+.pip-hora {
+    /* Reloj ensanchado e imponente de lado a lado de la caja de widgets */
+    font-size: clamp(3.2rem, 11vw, 7.8rem);
+    font-weight: bold;
+    line-height: 0.95;
+    letter-spacing: 0.3vw;
+    text-shadow: 0 0 14px var(--verde-pipboy);
+    white-space: nowrap;
+}
+
+.pip-fecha {
+    font-size: clamp(0.95rem, 2.6vmin, 1.6rem);
+    margin-top: 1vh;
+    letter-spacing: 2px;
+    opacity: 0.85;
+}
+
+.pip-combat-widgets {
+    display: flex;
+    gap: 1vw;
+    width: 100%;
+}
+
+.pip-widget-box {
+    display: flex;
+    align-items: center;
+    gap: 1.2vw;
+    background: rgba(15, 79, 22, 0.25);
+    border: 1px solid var(--verde-oscuro);
+    padding: 1.8vh 1.6vw;
+    flex: 1;
+}
+
+.widget-icon {
+    font-size: clamp(1.8rem, 5.2vmin, 3.2rem);
+    line-height: 1;
+    color: transparent;
+    text-shadow: 0 0 0 var(--verde-pipboy), 0 0 8px var(--verde-pipboy);
+}
+
+.widget-data {
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid var(--verde-oscuro);
+    padding-left: 1vw;
+}
+
+.widget-label {
+    font-size: clamp(0.7rem, 2vmin, 1.15rem);
+    opacity: 0.75;
+    letter-spacing: 1px;
+}
+
+.widget-value {
+    font-size: clamp(1.25rem, 3.8vmin, 2.3rem);
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.rad-meter-vertical {
+    width: clamp(8px, 1.5vmin, 14px);
+    height: clamp(34px, 7.5vh, 64px);
+    border: 1px solid var(--verde-pipboy);
+    display: flex;
+    align-items: flex-end;
+    margin-left: auto;
+    padding: 1px;
+}
+
+.rad-fill {
+    width: 100%;
+    height: 20%;
+    background: var(--verde-pipboy);
+    transition: height 0.5s ease;
+}
+
+.pip-bottom-hud {
+    display: flex;
+    gap: 1.2vw;
+    width: 100%;
+    padding-top: 1.5vh;
+}
+
+.hud-box {
+    background: rgba(15, 79, 22, 0.3);
+    padding: 1.4vh 2vw;
+    display: flex;
+    align-items: center;
+    gap: 1.5vw;
+    font-weight: bold;
+    font-size: clamp(0.95rem, 2.8vmin, 1.6rem);
+}
+
+.hud-pwr { flex: 1.6; }
+.hud-net { flex: 1; justify-content: space-between; }
+
+.pip-level-bar {
+    flex: 1;
+    height: clamp(12px, 2.6vh, 24px);
+    border: 1px solid var(--verde-pipboy);
+    padding: 2px;
+    background: rgba(0, 15, 0, 0.7);
+}
+
+.pip-level-fill {
+    height: 100%;
+    background: var(--verde-pipboy);
+    box-shadow: 0 0 6px var(--verde-pipboy);
+    transition: width 0.4s ease;
+}
+
+/* =====================================================
+   MÓDULO DATA A DOS COLUMNAS
+===================================================== */
+#data-modulo.activo {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.data-two-columns {
+    display: flex;
+    gap: 3vw;
+    flex: 1;
+    height: calc(100% - 50px);
+    padding: 1vh 1vw 2vh 1vw;
+    overflow: hidden;
+}
+
+.data-col-left {
+    flex: 0 0 38%;
+    display: flex;
+    flex-direction: column;
+    gap: 3vh;
+    border-right: 2px solid var(--verde-oscuro);
+    padding-right: 2.5vw;
+    overflow-y: auto;
+}
+
+.data-panel-box {
+    background: rgba(15, 79, 22, 0.14);
+    border: 1px solid var(--verde-oscuro);
+    padding: 2vh 1.5vw;
+}
+
+.data-col-right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2.5vh;
+    overflow: hidden;
+}
+
+.data-list-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.data-section-header {
+    background: rgba(0, 255, 102, 0.18);
+    border-left: 4px solid var(--verde-pipboy);
+    padding: 0.6vh 1vw;
+    font-weight: bold;
+    font-size: clamp(0.85rem, 2.3vmin, 1.25rem);
+    letter-spacing: 1.5px;
+    margin-bottom: 1vh;
+}
+
+.data-col-right .lista-quests {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 8px;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* =====================================================
+   MÓDULO RADIO A DOS COLUMNAS (CORREGIDO Y SIN DESBORDAMIENTO)
+===================================================== */
+#radio-modulo.pip-modulo.activo {
+    display: flex;
+    flex-direction: column;
+    height: 100% !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+}
+
+.radio-two-columns {
+    display: flex;
+    gap: 2.5vw;
+    flex: 1 1 auto !important;
+    height: calc(100% - 70px) !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    padding: 1vh 0.5vw;
+}
+
+/* Columna Izquierda de Radio */
+.radio-col-left {
+    flex: 0 0 44%;
+    display: flex;
+    flex-direction: column;
+    gap: 1.2vh;
+    height: 100% !important;
+    overflow-y: auto !important;
+    padding-right: 0.8vw;
+}
+
+.radio-col-left .panel-emisoras-zona-pro {
+    height: 130px !important;
+    min-height: 130px !important;
+    max-height: 130px !important;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden !important;
+    border: 1px solid var(--verde-pipboy);
+    background: rgba(15, 79, 22, 0.1);
+    padding: 1vh 1vw;
+}
+
+.radio-col-left .panel-emisoras-zona-pro ul {
+    overflow-y: auto !important;
+    flex: 1;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+
+/* Columna Derecha de Radio (Fija y sin desbordar) */
+.radio-col-right {
+    flex: 1 1 auto !important;
+    display: flex;
+    flex-direction: column;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    background: rgba(0, 15, 0, 0.5);
+    border: 1px solid var(--verde-oscuro);
+    padding: 1.5vh 1.5vw;
+    gap: 1.2vh;
+    overflow: hidden !important;
+}
+
+.radio-pantalla-grande {
+    flex: 0 0 auto;
+    border: 1px solid var(--verde-pipboy);
+    padding: 1.2vh 1vw;
+    display: flex;
+    flex-direction: column;
+    gap: 1vh;
+    background: rgba(15, 79, 22, 0.2);
+}
+
+.radio-col-right .panel-emisoras-zona-pro {
+    flex: 1 1 0% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    border: 1px solid var(--verde-pipboy);
+    background: rgba(15, 79, 22, 0.1);
+    padding: 1vh 1vw;
+    overflow: hidden !important;
+}
+
+.radio-col-right .panel-emisoras-zona-pro ul,
+#lista-resultados-satelite {
+    flex: 1 1 0% !important;
+    overflow-y: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    padding-right: 4px;
+}
+
+/* =====================================================
+   COMPONENTES UI Y CONTROLES GENERALES
+===================================================== */
+.boton-pipboy {
+    background: transparent;
+    border: 1px solid var(--verde-pipboy);
+    color: var(--verde-pipboy);
+    padding: 10px 15px;
+    cursor: pointer;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+.boton-pipboy:active {
+    background: var(--verde-pipboy);
+    color: var(--fondo-terminal);
+}
+
+.input-pipboy-fecha {
+    background: rgba(0, 20, 0, 0.6);
+    border: 1px solid var(--verde-pipboy);
+    color: var(--verde-pipboy);
+    padding: 6px 8px;
+    font-size: 0.8rem;
+    outline: none;
+    color-scheme: dark;
+}
+
+.lista-quests {
+    list-style: none;
+    max-height: 60vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.quest-vacia {
+    color: var(--verde-oscuro);
+    font-size: 0.9rem;
+    text-align: center;
+    margin-top: 20px;
+}
+
+.quest-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    border: 1px solid transparent;
+}
+
+.quest-texto {
+    flex: 1;
+    cursor: pointer;
+    word-break: break-word;
+}
+
+.quest-item.completada .quest-texto {
+    color: var(--verde-oscuro);
+    text-decoration: line-through;
+}
+
+.quest-eliminar {
+    background: transparent;
+    border: none;
+    color: var(--verde-pipboy);
+    font-weight: bold;
+    cursor: pointer;
+    margin-left: 10px;
+    padding: 4px 8px;
+}
+
+/* Control de Volumen */
+.pip-volumen-box {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 8px 0;
+    padding: 6px 12px;
+    border: 1px solid var(--verde-oscuro);
+    background: rgba(0, 20, 0, 0.4);
+}
+
+.pip-volumen-label, .pip-volumen-pct {
+    font-size: 0.85rem;
+    font-weight: bold;
+}
+
+.pip-volumen-pct { min-width: 42px; text-align: right; }
+
+.pip-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    flex: 1;
+    height: 6px;
+    background: rgba(0, 255, 102, 0.15);
+    border: 1px solid var(--verde-pipboy);
+    outline: none;
+    cursor: pointer;
+}
+
+.pip-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 20px;
+    background: var(--verde-pipboy);
+    box-shadow: 0 0 8px var(--verde-pipboy);
+}
+
+/* Buscadores y Dropdowns */
+.radio-acciones-top { display: flex; gap: 8px; width: 100%; }
+.radio-acciones-top .boton-pipboy { flex: 1; margin-top: 0; }
+
+.radio-buscador-box {
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--verde-oscuro);
+    padding: 4px 8px;
+    background: rgba(0,20,0,0.3);
+}
+
+#input-buscar-cancion, #input-buscar-satelite {
+    background: transparent;
+    border: none;
+    color: var(--verde-pipboy);
+    font-size: 0.9rem;
+    width: 100%;
+    outline: none;
+}
+
+.sugerencias-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    max-height: 150px;
+    overflow-y: auto;
+    background: var(--fondo-terminal);
+    border: 1px solid var(--verde-pipboy);
+    list-style: none;
+    z-index: 100;
+    display: none;
+}
+
+.sugerencia-item {
+    padding: 6px 10px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    border-bottom: 1px dotted var(--verde-oscuro);
+    background: rgba(0,20,0,0.9);
+}
+
+/* Filtros Retro de Mapas */
+#google-map-iframe {
+    filter: invert(100%) grayscale(100%) sepia(100%) hue-rotate(75deg) saturate(300%) contrast(1.15) brightness(0.95);
+}
+
+#mapa-offline {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(5, 16, 5, 0.85);
+    z-index: 10;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    pointer-events: none;
+}
+
+#mapa-offline.alerta-discreta {
+    background: transparent;
+    justify-content: flex-start;
+    align-items: flex-end;
+    padding: 10px;
+}
+
+#mapa-offline.alerta-discreta h2 { font-size: 0.9rem; margin: 0; }
+#mapa-offline.alerta-discreta p { display: none; }
+
+/* Barra HUD Inferior de Mapas y Módulos */
+.pip-map-bottom-hud {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+    margin-top: 1vh;
+}
+
+.map-hud-box {
+    background: rgba(15, 79, 22, 0.35);
+    border: 1px solid var(--verde-oscuro);
+    padding: 0.8vh 1.2vw;
+    font-size: clamp(0.8rem, 2.2vmin, 1.2rem);
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+}
+
+.map-coords { flex: 1.3; justify-content: flex-start; }
+.map-time { flex: 0.9; justify-content: center; }
+.map-location { flex: 1.4; justify-content: flex-end; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+/* Splash Screen */
+.splash-container {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: #051005;
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 4vw;
+}
+
+.splash-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    max-width: 700px;
+    width: 100%;
+}
+
+/* =====================================================
+   RELOJ GIGANTE Y 4 WIDGETS INDEPENDIENTES EN STATS
+===================================================== */
+.stats-info-column {
+    flex: 0 1 65%;
+    max-width: 860px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2.2vh;
+}
+
+.pip-clock-box {
+    border-left: 6px solid var(--verde-pipboy);
+    padding-left: 2vw;
+    width: 100%;
+}
+
+.pip-hora {
+    /* Reloj ultra masivo y dominante */
+    font-size: clamp(4rem, 13.5vw, 9.5rem);
+    font-weight: bold;
+    line-height: 0.9;
+    letter-spacing: 0.4vw;
+    text-shadow: 0 0 16px var(--verde-pipboy);
+    white-space: nowrap;
+}
+
+.pip-fecha {
+    font-size: clamp(1rem, 2.8vw, 1.8rem);
+    margin-top: 1vh;
+    letter-spacing: 2px;
+    opacity: 0.85;
+}
+
+.pip-combat-widgets {
+    display: flex;
+    gap: 0.8vw;
+    width: 100%;
+}
+
+.pip-widget-box {
+    display: flex;
+    align-items: center;
+    gap: 0.8vw;
+    background: rgba(15, 79, 22, 0.25);
+    border: 1px solid var(--verde-oscuro);
+    padding: 1.5vh 1vw;
+    flex: 1;
+    min-width: 0;
+}
+
+.pip-widget-box .widget-icon {
+    font-size: clamp(1.4rem, 3.8vmin, 2.6rem);
+}
+
+.pip-widget-box .widget-data {
+    border-left: 1px solid var(--verde-oscuro);
+    padding-left: 6px;
+    overflow: hidden;
+}
+
+.pip-widget-box .widget-label {
+    font-size: clamp(0.55rem, 1.5vmin, 0.9rem);
+    white-space: nowrap;
+}
+
+.pip-widget-box .widget-value {
+    font-size: clamp(0.9rem, 2.6vmin, 1.4rem);
+    white-space: nowrap;
+}
+
+/* =====================================================
+   CORRECCIÓN Y ESCALADO ÉPICO DE LA PANTALLA DE ARRANQUE
+===================================================== */
+.splash-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: var(--fondo-terminal, #051005);
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 5vw;
+    box-sizing: border-box;
+}
+
+.splash-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center; /* Centrado horizontal perfecto */
+    text-align: center;   /* Centrado del texto */
+    max-width: 900px;
+    width: 100%;
+    gap: 1.8vh;
+}
+
+.splash-content .sys-texto {
+    font-size: clamp(1.4rem, 4.2vmin, 2.4rem) !important;
+    margin-bottom: 0.5vh !important;
+    line-height: 1.4;
+    text-shadow: 0 0 8px rgba(29, 242, 59, 0.4);
+}
+
+#btn-init-os {
+    font-size: clamp(1.5rem, 4.8vmin, 2.8rem) !important;
+    padding: 2vh 4.5vw !important;
+    margin-top: 3vh !important;
+    border: 2px solid var(--verde-pipboy) !important;
+    letter-spacing: 2px;
+    box-shadow: 0 0 12px rgba(29, 242, 59, 0.3);
+    transition: all 0.2s ease;
+}
+
+#btn-init-os:hover {
+    background: var(--verde-pipboy) !important;
+    color: var(--fondo-terminal) !important;
+    box-shadow: 0 0 20px var(--verde-pipboy);
+}
+
+/* =====================================================
+   MÓDULO DE MAPA EXPANSIBLE A PANTALLA COMPLETA
+===================================================== */
+#map-modulo.pip-modulo.activo {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+    box-sizing: border-box;
+}
+
+#map-modulo #mapa-vista {
+    flex: 1 1 auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    box-sizing: border-box;
+}
+
+#map-modulo .pip-map-bottom-hud {
+    flex: 0 0 auto !important;
+    margin-top: 1vh !important;
+    box-sizing: border-box;
+}
+
+/* =====================================================
+   CAJA CON ALTURA FIJA Y SCROLL PARA EL NOMBRE DE LA ESTACIÓN
+===================================================== */
+#radio-modulo .radio-pantalla-grande {
+    height: 145px !important;       /* Altura fija estricta para el reproductor superior */
+    min-height: 145px !important;
+    max-height: 145px !important;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden !important;
+    box-sizing: border-box;
+}
+
+#radio-modulo #nombre-cancion {
+    max-height: 48px !important;    /* Limita la altura del texto a 2 o 3 líneas visibles */
+    overflow-y: auto !important;    /* Activa la barra deslizadora vertical si el nombre es kilométrico */
+    font-size: 0.95rem !important;
+    line-height: 1.2;
+    word-break: break-word;
+    padding-right: 4px;
+}
+
+/* Scrollbar estilizado estilo Pip-Boy para el nombre largo */
+#radio-modulo #nombre-cancion::-webkit-scrollbar {
+    width: 3px;
+}
+
+#radio-modulo #nombre-cancion::-webkit-scrollbar-thumb {
+    background: var(--verde-pipboy);
+}
+
+/* =====================================================
+   CORRECCIÓN DE DISEÑO RESPONSIVO PARA EL MÓDULO DATA
+===================================================== */
+#data-modulo.activo {
+    display: flex;
+    flex-direction: column;
+    height: 100% !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+}
+
+#data-modulo .data-two-columns {
+    display: flex;
+    gap: 2.5vw;
+    flex: 1 1 auto !important;
+    height: calc(100% - 60px) !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    box-sizing: border-box;
+}
+
+/* Columna izquierda con scroll y ancho mínimo protegido */
+#data-modulo .data-col-left {
+    flex: 0 0 40% !important;
+    min-width: 250px !important;
+    display: flex;
+    flex-direction: column;
+    gap: 2vh;
+    height: 100% !important;
+    overflow-y: auto !important;
+    box-sizing: border-box;
+    padding-right: 1vw;
+}
+
+/* Forzar que los campos de texto dentro de los inputs se reduzcan sin romper el botón [+] */
+#data-modulo .data-input-contenedor,
+#data-modulo .rec-input-vertical > div {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#data-modulo .data-input-contenedor input,
+#data-modulo .rec-input-vertical input[type="text"] {
+    flex: 1 1 0% !important;
+    min-width: 0 !important;
+    width: auto !important;
+}
+
+#data-modulo .boton-pipboy {
+    flex-shrink: 0 !important; /* Evita que el botón [+] se aplaste o salga del contenedor */
+}
+
+/* Columna derecha adaptativa */
+#data-modulo .data-col-right {
+    flex: 1 1 auto !important;
+    display: flex;
+    flex-direction: column;
+    height: 100% !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+}/* =====================================================
+   CORRECCIÓN DE DISEÑO RESPONSIVO PARA EL MÓDULO DATA
+===================================================== */
+#data-modulo.activo {
+    display: flex;
+    flex-direction: column;
+    height: 100% !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+}
+
+#data-modulo .data-two-columns {
+    display: flex;
+    gap: 2.5vw;
+    flex: 1 1 auto !important;
+    height: calc(100% - 60px) !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    box-sizing: border-box;
+}
+
+/* Columna izquierda con scroll y ancho mínimo protegido */
+#data-modulo .data-col-left {
+    flex: 0 0 40% !important;
+    min-width: 250px !important;
+    display: flex;
+    flex-direction: column;
+    gap: 2vh;
+    height: 100% !important;
+    overflow-y: auto !important;
+    box-sizing: border-box;
+    padding-right: 1vw;
+}
+
+/* Forzar que los campos de texto dentro de los inputs se reduzcan sin romper el botón [+] */
+#data-modulo .data-input-contenedor,
+#data-modulo .rec-input-vertical > div {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#data-modulo .data-input-contenedor input,
+#data-modulo .rec-input-vertical input[type="text"] {
+    flex: 1 1 0% !important;
+    min-width: 0 !important;
+    width: auto !important;
+}
+
+#data-modulo .boton-pipboy {
+    flex-shrink: 0 !important; /* Evita que el botón [+] se aplaste o salga del contenedor */
+}
+
+/* Columna derecha adaptativa */
+#data-modulo .data-col-right {
+    flex: 1 1 auto !important;
+    display: flex;
+    flex-direction: column;
+    height: 100% !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+}
+
+/* =====================================================
+   CORRECCIÓN DEFINITIVA DE LA RADIO: SCROLL IZQUIERDO Y ESTADO ARRIBA
+===================================================== */
+#radio-modulo .radio-two-columns {
+    display: flex;
+    gap: 2.5vw;
+    flex: 1;
+    height: calc(100% - 40px);
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+/* Columna Izquierda con Scroll Vertical Fluido */
+#radio-modulo .radio-col-left {
+    flex: 0 0 44%;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5vh;
+    height: 100% !important;
+    overflow-y: auto !important; /* Devuelve el scroll vertical que necesitabas */
+    padding-right: 0.8vw;
+    box-sizing: border-box;
+}
+
+#radio-modulo .radio-col-left::-webkit-scrollbar {
+    width: 4px;
+}
+
+#radio-modulo .radio-col-left::-webkit-scrollbar-thumb {
+    background: var(--verde-pipboy);
+}
+
+/* Columna Derecha fija y ordenada */
+#radio-modulo .radio-col-right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: rgba(0, 15, 0, 0.5);
+    border: 1px solid var(--verde-oscuro);
+    padding: 1.5vh 1.5vw;
+    gap: 1.5vh;
+    min-height: 0;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+/* Pantalla grande derecha */
+#radio-modulo .radio-pantalla-grande {
+    flex: 0 0 auto;
+    border: 1px solid var(--verde-pipboy);
+    padding: 1.2vh 1vw;
+    display: flex;
+    flex-direction: column;
+    gap: 1vh;
+    background: rgba(15, 79, 22, 0.2);
+    box-sizing: border-box;
+}
+
+#radio-modulo #nombre-cancion {
+    max-height: 48px !important;
+    overflow-y: auto !important;
+    font-size: 0.95rem !important;
+    line-height: 1.2;
+    word-break: break-word;
+    padding-right: 4px;
+}
+
+#radio-modulo #nombre-cancion::-webkit-scrollbar {
+    width: 3px;
+}
+
+#radio-modulo #nombre-cancion::-webkit-scrollbar-thumb {
+    background: var(--verde-pipboy);
+}
+
+/* =====================================================
+   CORRECCIÓN DE ESCALA Y ADAPTACIÓN TIPOGRÁFICA EN STATS
+===================================================== */
+
+/* Contenedor derecho de stats con manejo seguro de altura */
+.stats-info-column {
+    flex: 0 1 65%;
+    max-width: 860px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 1.5vh;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+/* Caja del reloj con adaptación fluida */
+.pip-clock-box {
+    border-left: 6px solid var(--verde-pipboy);
+    padding-left: 2vw;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.pip-hora {
+    /* Usamos un clamp optimizado para que el reloj escale perfectamente y NUNCA se corte a lo ancho */
+    font-size: clamp(2.5rem, 8.5vw, 7.5rem) !important;
+    font-weight: bold;
+    line-height: 0.95;
+    letter-spacing: 0.2vw;
+    text-shadow: 0 0 14px var(--verde-pipboy);
+    white-space: nowrap;
+}
+
+.pip-fecha {
+    font-size: clamp(0.85rem, 2.2vw, 1.5rem);
+    margin-top: 0.8vh;
+    letter-spacing: 1.5px;
+    opacity: 0.85;
+}
+
+/* Fila de los 4 widgets independientes */
+.pip-combat-widgets {
+    display: flex;
+    gap: 0.8vw;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Widgets independientes con adaptación estricta para evitar cortes verticales en letras */
+.pip-widget-box {
+    display: flex;
+    align-items: center;
+    gap: 0.6vw;
+    background: rgba(15, 79, 22, 0.25);
+    border: 1px solid var(--verde-oscuro);
+    padding: 1.2vh 0.8vw !important; /* Padding vertical controlado */
+    flex: 1;
+    min-width: 0;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.pip-widget-box .widget-icon {
+    font-size: clamp(1.2rem, 3.2vmin, 2.2rem);
+    line-height: 1;
+}
+
+.pip-widget-box .widget-data {
+    border-left: 1px solid var(--verde-oscuro);
+    padding-left: 6px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    width: 100%;
+}
+
+.pip-widget-box .widget-label {
+    font-size: clamp(0.5rem, 1.3vmin, 0.8rem) !important;
+    white-space: nowrap;
+    line-height: 1.1;
+}
+
+.pip-widget-box .widget-value {
+    font-size: clamp(0.8rem, 2.2vmin, 1.2rem) !important;
+    white-space: nowrap;
+    line-height: 1.2;
+}
+
+/* =====================================================
+   CORRECCIÓN DE CORTE DE TEXTO EN WIDGET DE VIENTO
+===================================================== */
+.pip-combat-widgets .pip-widget-box {
+    padding: 1.2vh 0.5vw !important; /* Ajusta ligeramente los márgenes laterales internos */
+}
+
+/* Permitir que el cuarto widget (viento) gestione textos ligeramente más largos sin salirse */
+.pip-combat-widgets .pip-widget-box:nth-child(4) .widget-value {
+    font-size: clamp(0.7rem, 1.8vmin, 1.05rem) !important; /* Escala tipográfica más segura para el estado del dron */
+    white-space: nowrap;
+}
+
+/* =====================================================
+   CORRECCIÓN DEFINITIVA DE ESCALA RESPONSIVA EN STATS
+===================================================== */
+
+.stats-info-column {
+    flex: 0 1 65%;
+    max-width: 860px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 1.5vh;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.pip-clock-box {
+    border-left: 6px solid var(--verde-pipboy);
+    padding-left: 2vw;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Reloj con un clamp más seguro para pantallas angostas para que jamás se corte */
+.pip-hora {
+    font-size: clamp(2rem, 7.5vw, 7.5rem) !important;
+    font-weight: bold;
+    line-height: 0.95;
+    letter-spacing: 0.1vw;
+    text-shadow: 0 0 14px var(--verde-pipboy);
+    white-space: nowrap;
+}
+
+.pip-fecha {
+    font-size: clamp(0.75rem, 2vw, 1.5rem);
+    margin-top: 0.8vh;
+    letter-spacing: 1px;
+    opacity: 0.85;
+}
+
+/* Fila de widgets completamente fluida */
+.pip-combat-widgets {
+    display: flex;
+    gap: 0.6vw;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.pip-widget-box {
+    display: flex;
+    align-items: center;
+    gap: 0.4vw;
+    background: rgba(15, 79, 22, 0.25);
+    border: 1px solid var(--verde-oscuro);
+    padding: 1vh 0.4vw !important;
+    flex: 1;
+    min-width: 0;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.pip-widget-box .widget-icon {
+    font-size: clamp(1rem, 2.8vmin, 2rem);
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.pip-widget-box .widget-data {
+    border-left: 1px solid var(--verde-oscuro);
+    padding-left: 4px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    width: 100%;
+    min-width: 0;
+}
+
+/* Forzar que las etiquetas y valores ajusten su tamaño para nunca salirse */
+.pip-widget-box .widget-label {
+    font-size: clamp(0.45rem, 1.1vmin, 0.75rem) !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pip-widget-box .widget-value {
+    font-size: clamp(0.65rem, 1.8vmin, 1.1rem) !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Medidor vertical de radiación adaptado para no deformar su caja */
+.rad-meter-vertical {
+    width: clamp(5px, 1.2vmin, 10px) !important;
+    height: clamp(26px, 5.5vh, 48px) !important;
+    flex-shrink: 0;
+    margin-left: 2px !important;
+}
+
+/* =====================================================
+   EFECTO TÁCTICO: DESLIZAMIENTO IZQUIERDA Y FADE IN
+===================================================== */
+.pip-ticker {
+    display: block;
+    width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    box-sizing: border-box;
+}
+
+/* Si no necesita animarse, usa puntos suspensivos normales y se queda quieto */
+.pip-ticker:not(.animating) .ticker-content {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: bottom;
+}
+
+/* Si es muy largo, se prepara para el slide */
+.pip-ticker.animating .ticker-content {
+    display: inline-block;
+    will-change: transform, opacity;
+    transform: translateX(0);
+    animation: pipFadeTicker var(--scroll-duration, 10s) linear infinite;
+}
+
+/* Línea de tiempo actualizada: Inicio inmediato */
+@keyframes pipFadeTicker {
+    0% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    80% {
+        transform: translateX(-105%); 
+        opacity: 1;
+    }
+    81%, 90% {
+        transform: translateX(-105%);
+        opacity: 0;
+    }
+    91% {
+        transform: translateX(0);
+        opacity: 0;
+    }
+    100% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* =====================================================
+   BRÚJULA TÁCTICA ESTILO HUD (PRECISA AL JUEGO)
+===================================================== */
+.pip-compass-container {
+    position: relative;
+    width: 100%;
+    height: 32px;
+    background: transparent !important;
+    border: none !important;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    margin-bottom: 0.8vh;
+}
+
+/* Barra delimitadora superior con la línea horizontal y el marcador central */
+.compass-top-bar {
+    position: relative;
+    width: 100%;
+    height: 8px;
+    border-top: 2px solid var(--verde-pipboy);
+    box-shadow: 0 0 5px var(--verde-pipboy);
+}
+
+.compass-center-pointer {
+    position: absolute;
+    top: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: var(--verde-pipboy);
+    font-size: 0.65rem;
+    line-height: 1;
+    z-index: 5;
+    text-shadow: 0 0 6px var(--verde-pipboy);
+}
+
+/* Contenedor deslizante con desvanecimiento lateral (Fade-out) y línea horizontal central */
+.compass-strip-wrapper {
+    position: relative;
+    width: 100%;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    
+    /* Línea horizontal continua que une las letras y marcas de la brújula */
+    border-top: 1px solid rgba(29, 242, 59, 0.7);
+    box-shadow: 0 0 4px rgba(29, 242, 59, 0.4);
+
+    /* Máscara de desvanecimiento simétrico en los extremos izquierdo y derecho */
+    -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,1) 20%, rgba(0,0,0,1) 80%, transparent 100%);
+    mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,1) 20%, rgba(0,0,0,1) 80%, transparent 100%);
+}
+
+.compass-strip {
+    display: flex;
+    position: absolute;
+    left: 0;
+    white-space: nowrap;
+    will-change: transform;
+    font-size: 0.8rem;
+    font-weight: bold;
+    letter-spacing: 16px;
+    color: var(--verde-pipboy);
+    text-shadow: 0 0 5px rgba(29, 242, 59, 0.6);
+    align-items: center;
+}
+
+.compass-strip span {
+    display: inline-block;
+    text-align: center;
+    min-width: 65px;
+}
+
+/* =====================================================
+   ESTILOS DE CRONÓMETRO TÁCTICO MEJORADO
+===================================================== */
+.chrono-btn-group {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-left: 4px;
+    flex-shrink: 0;
+}
+
+.chrono-btn {
+    background: rgba(0, 20, 0, 0.6);
+    border: 1px solid var(--verde-oscuro);
+    color: var(--verde-pipboy);
+    font-size: 0.65rem;
+    padding: 2px 5px;
+    cursor: pointer;
+    font-family: inherit;
+    line-height: 1;
+    text-align: center;
+}
+
+.chrono-btn:hover {
+    border-color: var(--verde-pipboy);
+    background: var(--verde-pipboy);
+    color: var(--fondo-terminal);
+}

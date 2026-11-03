@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pip-Boy OS</title>
+    
+    <!-- Enlace al Manifest para la PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0a120b">
+    
+    <!-- Estilos visuales -->
+    <link rel="stylesheet" href="css/styles.css">
+
+    <!-- Estilos y Script de Leaflet.js para el Mapa -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+</head>
+<body>
+
+    <!-- PANTALLA DE ARRANQUE (SPLASH SCREEN) -->
+    <div id="splash-screen" class="splash-container">
+        <div class="splash-content">
+            <p class="sys-texto">> RobCo Industries Unified Operating System</p>
+            <p class="sys-texto">> Copyright 2075-2077 RobCo Industries</p>
+            <p class="sys-texto">> - Server 1 -</p>
+            <p class="sys-texto">> Pip-Boy 3000 Mark IV OS v1.0.0</p>
+            <p class="sys-texto" id="splash-loading-text" style="display: none; margin-top: 15px;"></p>
+            <br>
+            <button id="btn-init-os" class="boton-pipboy" style="font-size: 1.2rem; padding: 10px 20px; animation: parpadeo 1.5s infinite;">
+                [ INICIALIZAR SISTEMA ]
+            </button>
+        </div>
+    </div>
+
+    <!-- Capas de efectos CRT (Scanlines y Viñeta) -->
+    <div class="crt-overlay"></div>
+    <div class="scanlines"></div>
+
+    <main class="pip-boy-pantalla">
+        
+        <!-- BARRA DE NAVEGACIÓN SUPERIOR -->
+        <nav class="pip-nav">
+            <button class="nav-btn activo" data-target="stats-modulo">STATS</button>
+            <button class="nav-btn" data-target="data-modulo">DATA</button>
+            <button class="nav-btn" data-target="map-modulo">MAP</button>
+            <button class="nav-btn" data-target="radio-modulo">RADIO</button>
+        </nav>
+
+        <div class="pip-contenido">
+            
+            <!-- MÓDULO 1: STATS -->
+            <section id="stats-modulo" class="pip-modulo activo">
+                
+                <div class="pip-subnav">
+                    <span class="subnav-item activo">STATUS</span>
+                    <span class="subnav-item">ENV.SENSOR</span>
+                    <span class="subnav-item">SYS.LOG</span>
+                </div>
+
+                <div class="stats-main-grid">
+                    
+                    <!-- Columna Izquierda: Vault Boy con Miras -->
+                    <div class="vb-reticle">
+                        <span class="tick top"></span>
+                        <span class="tick bottom"></span>
+                        <span class="tick left-top"></span>
+                        <span class="tick left-bot"></span>
+                        <span class="tick right-top"></span>
+                        <span class="tick right-bot"></span>
+                        
+                        <img src="img/vaultboy.gif" alt="Vault Boy" class="vaultboy-anim">
+                    </div>
+
+                    <!-- Columna Derecha: Reloj Gigante + 6 Widgets Simétricos -->
+                    <div class="stats-info-column">
+                        
+                        <!-- BRÚJULA TÁCTICA ESTILO HUD (IDÉNTICA AL JUEGO) -->
+                        <div class="pip-compass-container">
+                            <!-- Barra delimitadora superior con el indicador de rumbo central (▼) -->
+                            <div class="compass-top-bar">
+                                <div class="compass-center-pointer">▼</div>
+                            </div>
+                            
+                            <!-- Cinta deslizante con desvanecimiento y la línea central que une las letras -->
+                            <div class="compass-strip-wrapper">
+                                <div class="compass-strip" id="pip-compass-strip">
+                                    <span>N</span><span>30</span><span>60</span><span>NE</span><span>120</span><span>150</span><span>E</span><span>210</span><span>240</span><span>SE</span><span>300</span><span>330</span>
+                                    <span>N</span><span>30</span><span>60</span><span>NE</span><span>120</span><span>150</span><span>E</span><span>210</span><span>240</span><span>SE</span><span>300</span><span>330</span>
+                                    <span>N</span><span>30</span><span>60</span><span>NE</span><span>120</span><span>150</span><span>E</span><span>210</span><span>240</span><span>SE</span><span>300</span><span>330</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- PRIMERA FILA: Cronómetro Táctico, Odómetro y Clima (3 Widgets) -->
+                        <div class="pip-combat-widgets" style="margin-bottom: 0.5vh;">
+                            
+                            <!-- Widget 1: Cronómetro Táctico con Milisegundos y Botón Dinámico -->
+                            <div class="pip-widget-box">
+                                <span class="widget-icon">⏱</span>
+                                <div class="widget-data" style="flex: 1; min-width: 0;">
+                                    <span class="widget-label">CHRONO</span>
+                                    <div class="pip-ticker">
+                                        <span class="widget-value ticker-content" id="chrono-display">00:00:00.00</span>
+                                    </div>
+                                </div>
+                                <!-- Micro-botones compactos (Start y el dinámico Pause/Stop) -->
+                                <div class="chrono-btn-group">
+                                    <button id="btn-chrono-start" class="chrono-btn">[►]</button>
+                                    <button id="btn-chrono-pausestop" class="chrono-btn">[❚❚]</button>
+                                </div>
+                            </div>
+
+                            <!-- Widget 2: Odómetro / Contador de Distancia -->
+                            <div class="pip-widget-box" style="padding-right: 2px !important;">
+                                <span class="widget-icon">⚑</span>
+                                <div class="widget-data">
+                                    <span class="widget-label">TRIP METER</span>
+                                    <div class="pip-ticker">
+                                        <span class="widget-value ticker-content" id="trip-distancia">0.00 KM</span>
+                                    </div>
+                                </div>
+                                <button id="btn-reset-trip" class="boton-pipboy" style="padding: 2px 6px; margin: 0 4px 0 2px; font-size: 0.65rem; border-color: var(--verde-oscuro); height: 100%; flex-shrink: 0;">[RST]</button>
+                            </div>
+
+                            <!-- Widget 3: Clima y Temperatura -->
+                            <div class="pip-widget-box">
+                                <span class="widget-icon" id="clima-icono">☽</span>
+                                <div class="widget-data">
+                                    <span class="widget-label">CLIMA</span>
+                                    <div class="pip-ticker">
+                                        <span class="widget-value ticker-content" id="clima-estado">CLEAR NIGHT | 12°C</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- Reloj y Fecha Centrales -->
+                        <div class="pip-clock-box">
+                            <div class="pip-hora" id="pip-reloj">01:26:00</div>
+                            <div class="pip-fecha" id="pip-fecha">TUESDAY // 03.11.2026</div>
+                        </div>
+
+                        <!-- SEGUNDA FILA: Sensores Tácticos (3 Widgets) -->
+                        <div class="pip-combat-widgets">
+                            
+                            <!-- Widget 4: Radiación / Aire -->
+                            <div class="pip-widget-box">
+                                <span class="widget-icon">☢</span>
+                                <div class="widget-data">
+                                    <span class="widget-label">AIR // RADS</span>
+                                    <div class="pip-ticker">
+                                        <span class="widget-value ticker-content" id="aire-rads">+57 MOD</span>
+                                    </div>
+                                </div>
+                                <div class="rad-meter-vertical">
+                                    <div class="rad-fill" id="rad-barra-fill"></div>
+                                </div>
+                            </div>
+
+                            <!-- Widget 5: Índice UV -->
+                            <div class="pip-widget-box">
+                                <span class="widget-icon">⚡︎</span>
+                                <div class="widget-data">
+                                    <span class="widget-label" id="clima-uv-label">UV INDEX</span>
+                                    <div class="pip-ticker">
+                                        <span class="widget-value ticker-content" id="bio-hum-valor">0.0 LOW</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Widget 6: Viento Independiente para Dron -->
+                            <div class="pip-widget-box">
+                                <span class="widget-icon">彡</span>
+                                <div class="widget-data">
+                                    <span class="widget-label">DRON WIND</span>
+                                    <div class="pip-ticker">
+                                        <span class="widget-value ticker-content" id="clima-viento">2 KM/H [SAFE]</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <!-- Barra Inferior HUD de STATS (Reorganizada con Ubicación Local) -->
+                <div class="pip-bottom-hud" style="display: flex; gap: 1vw; align-items: center; border-top: 2px solid var(--verde-pipboy); padding-top: 1vh; margin-top: auto;">
+                    
+                    <!-- Nuevo Espacio de Ubicación (Toma prioridad de espacio) -->
+                    <div class="hud-box hud-loc" style="flex: 1.2; display: flex; gap: 8px; align-items: center; overflow: hidden; white-space: nowrap;">
+                        <span style="opacity: 0.7; font-size: 0.8rem;">SENSOR LOC:</span>
+                        <span id="sensor-location" style="color: var(--verde-pipboy); font-weight: bold; overflow: hidden; text-overflow: ellipsis; font-size: 0.85rem;">PUEBLA, PUE. [MX]</span>
+                    </div>
+
+                    <!-- Batería Reducida a la mitad (CORREGIDA PARA MOSTRAR LA BARRA VERDE) -->
+                    <div class="hud-box hud-pwr" style="flex: 1; display: flex; gap: 8px; align-items: center;">
+                        <span style="font-size: 0.8rem;">PWR [AC]</span>
+                        
+                        <!-- Aumentamos height a 14px y reducimos padding a 1px para que la barra verde exista -->
+                        <div class="pip-level-bar" style="flex: 1; min-width: 40px; height: 14px; padding: 1px;">
+                            <div class="pip-level-fill" style="width: 100%;"></div>
+                        </div>
+                        
+                        <span style="font-size: 0.8rem;">100%</span>
+                    </div>
+
+                    <!-- Red Reducida y alineada a la derecha -->
+                    <div class="hud-box hud-net" style="flex: 0.6; display: flex; justify-content: flex-end; gap: 8px;">
+                        <span style="opacity: 0.7; font-size: 0.8rem;">NET</span>
+                        <span style="font-size: 0.8rem;">4G // 10Mb</span>
+                    </div>
+
+                </div>
+
+            </section>
+
+            <!-- MÓDULO 2: DATA -->
+            <section id="data-modulo" class="pip-modulo">
+                
+                <div class="pip-subnav">
+                    <span class="subnav-item activo">QUESTS</span>
+                    <span class="subnav-item">ALERTS</span>
+                    <span class="subnav-item">LOGS</span>
+                </div>
+
+                <div class="data-two-columns">
+                    
+                    <div class="data-col-left">
+                        
+                        <div class="data-panel-box">
+                            <p class="sys-texto" style="margin-bottom: 10px;">> NEW QUEST ENTRY</p>
+                            <div class="data-input-contenedor" style="display: flex; gap: 10px; align-items: center;">
+                                <span class="prompt-flecha">></span>
+                                <input type="text" id="input-tarea" placeholder="AÑADIR NUEVA MISIÓN..." autocomplete="off" style="flex: 1; background: transparent; border: none; color: var(--verde-pipboy); outline: none; font-family: inherit;">
+                                <button id="btn-agregar-mision" class="boton-pipboy" style="padding: 4px 12px; margin: 0;">[+]</button>
+                            </div>
+                        </div>
+
+                        <div class="data-panel-box">
+                            <p class="sys-texto" style="margin-bottom: 10px;">> SET TIME ALERT</p>
+                            <div class="rec-input-vertical">
+                                <input type="datetime-local" id="input-rec-fecha" class="input-pipboy-fecha" style="width: 100%; box-sizing: border-box; background: rgba(0, 20, 0, 0.6); border: 1px solid var(--verde-pipboy); color: var(--verde-pipboy); padding: 6px 8px; font-family: inherit;">
+                                <div style="display: flex; gap: 8px; align-items: center; margin-top: 8px;">
+                                    <span class="prompt-flecha">></span>
+                                    <input type="text" id="input-rec-texto" placeholder="ASUNTO DE ALARMA..." autocomplete="off" style="flex: 1; background: transparent; border: none; border-bottom: 1px solid var(--verde-pipboy); color: var(--verde-pipboy); outline: none; padding: 6px 4px; font-family: inherit;">
+                                    <button id="btn-add-rec" class="boton-pipboy" style="margin: 0; padding: 4px 12px;">[+]</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="data-panel-box" style="margin-top: auto;">
+                            <p class="sys-texto" style="margin-bottom: 6px; font-size: 0.75rem;">> MEMORY STATUS: <span id="data-stats-count" style="color: var(--verde-pipboy);">0 ACTIVE</span></p>
+                            <p class="sys-texto" style="margin: 0; font-size: 0.75rem; opacity: 0.7;">> SECURE STORAGE // OK</p>
+                        </div>
+
+                    </div>
+
+                    <div class="data-col-right">
+                        <div class="data-list-section">
+                            <div class="data-section-header">ACTIVE QUESTS</div>
+                            <ul id="lista-tareas" class="lista-quests"></ul>
+                        </div>
+
+                        <div class="data-list-section">
+                            <div class="data-section-header">SCHEDULED ALERTS</div>
+                            <ul id="lista-recordatorios" class="lista-quests"></ul>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="pip-map-bottom-hud">
+                    <div class="map-hud-box map-coords">SYS.SEC // QUEST-LOG</div>
+                    <div class="map-hud-box map-time" id="data-hora-display">00:00:00</div>
+                    <div class="map-hud-box map-location">STATUS: ACTIVE</div>
+                </div>
+            </section>
+
+            <!-- MÓDULO 3: MAP -->
+            <section id="map-modulo" class="pip-modulo">
+                <p class="sys-texto" style="margin-bottom: 5px;">SYS.SEC // 03 — LOCAL MAP</p>
+                
+                <div id="mapa-vista" style="position: relative; width: 100%; flex: 1; border: 1px solid var(--verde-pipboy); z-index: 5; min-height: 0;">
+                    <iframe id="google-map-iframe" width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy"></iframe>
+                    <div id="mapa-offline" class="alerta-parpadeo" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--fondo-terminal); z-index: 10; display: none; flex-direction: column; justify-content: center; align-items: center;">
+                        <h2>[ LOST SIGNAL ]</h2>
+                        <p>ESPERANDO CONEXIÓN SATELITAL...</p>
+                    </div>
+                </div>
+
+                <div class="pip-map-bottom-hud">
+                    <div class="map-hud-box map-coords" id="map-gps-display">LAT: --.-- // LON: --.--</div>
+                    <div class="map-hud-box map-time" id="map-hora-display">00:00:00</div>
+                    <div class="map-hud-box map-location" id="map-ubicacion-display">SCANNING SECTOR...</div>
+                </div>
+            </section>
+
+            <!-- MÓDULO 4: RADIO -->
+            <section id="radio-modulo" class="pip-modulo">
+                
+                <div class="pip-subnav">
+                    <span class="subnav-item activo">HOLOTAPES</span>
+                    <span class="subnav-item">UPLINK</span>
+                    <span class="subnav-item">FAVS</span>
+                </div>
+
+                <div class="radio-two-columns">
+                    
+                    <!-- COLUMNA IZQUIERDA -->
+                    <div class="radio-col-left">
+                        <input type="file" id="input-carpeta" webkitdirectory directory multiple accept="audio/*" style="display: none;">
+                        
+                        <div class="radio-acciones-top" style="display: flex; gap: 8px;">
+                            <button id="btn-cargar-cinta" class="boton-pipboy" style="flex: 1; margin: 0; font-size: 0.85rem;">[ LOAD HOLOTAPE ]</button>
+                            <button id="btn-shuffle" class="boton-pipboy" style="flex: 0.7; margin: 0; font-size: 0.85rem;">[ SHUFFLE: OFF ]</button>
+                        </div>
+
+                        <div style="position: relative;">
+                            <div class="radio-buscador-box" style="display: flex; align-items: center; border: 1px solid var(--verde-oscuro); padding: 4px 8px; background: rgba(0,20,0,0.3);">
+                                <span class="prompt-flecha" style="margin-right: 8px;">></span>
+                                <input type="text" id="input-buscar-cancion" placeholder="SEARCH LOCAL HOLOTAPE..." autocomplete="off" style="background: transparent; border: none; color: var(--verde-pipboy); width: 100%; outline: none; font-family: inherit; font-size: 0.9rem;">
+                            </div>
+                            <ul id="lista-sugerencias" class="sugerencias-dropdown"></ul>
+                        </div>
+
+                        <div class="radio-controles" style="display: flex; gap: 6px;">
+                            <button id="btn-prev" class="boton-pipboy" style="flex: 1; margin: 0; font-size: 0.8rem;">◄◄ PREV</button>
+                            <button id="btn-play" class="boton-pipboy" style="flex: 1; margin: 0; font-size: 0.8rem;">► PLAY</button>
+                            <button id="btn-pause" class="boton-pipboy" style="flex: 1; margin: 0; font-size: 0.8rem;">▐ ▐ PAUSE</button>
+                            <button id="btn-next" class="boton-pipboy" style="flex: 1; margin: 0; font-size: 0.8rem;">►► SKIP</button>
+                        </div>
+
+                        <div class="pip-volumen-box" style="margin: 0; padding: 4px 0;">
+                            <span class="pip-volumen-label">VOL</span>
+                            <input type="range" id="pip-volumen-slider" class="pip-slider" min="0" max="100" value="35">
+                            <span id="pip-volumen-valor" class="pip-volumen-pct">35%</span>
+                        </div>
+
+                        <!-- Sección de Favoritos -->
+                        <div class="panel-emisoras-zona-pro" style="height: 120px; min-height: 120px;">
+                            <span class="sys-texto" style="font-size: 0.75rem; border-bottom: 1px dashed var(--verde-oscuro); padding-bottom: 3px; margin-bottom: 4px; display: block;">FAVORITE STATIONS</span>
+                            <ul id="lista-favoritos-radio" style="list-style: none; overflow-y: auto; flex: 1; padding: 0; margin: 0;">
+                                <li style="font-size: 0.8rem; color: var(--verde-oscuro); padding: 2px 0;">> No favorite stations marked.</li>
+                            </ul>
+                        </div>
+
+                        <!-- Buscador Satelital -->
+                        <div class="radio-streaming-contenedor" style="border-top: 1px dashed var(--verde-oscuro); padding-top: 6px;">
+                            <span class="sys-texto" style="margin-bottom: 4px; display: block; font-size: 0.75rem;">SATELLITE UPLINK — COUNTRY FILTER</span>
+                            
+                            <div style="margin-bottom: 6px;">
+                                <select id="select-pais-satelite" style="width: 100%; padding: 5px; background: rgba(15, 79, 22, 0.3); border: 1px solid var(--verde-pipboy); color: var(--verde-pipboy); font-family: inherit; font-size: 0.8rem; outline: none;">
+                                    <option value="">[ ALL COUNTRIES / GLOBAL ]</option>
+                                    <option value="JP">JAPAN</option>
+                                    <option value="MX">MEXICO</option>
+                                    <option value="US">UNITED STATES</option>
+                                    <option value="GB">UNITED KINGDOM</option>
+                                    <option value="FR">FRANCE</option>
+                                    <option value="DE">GERMANY</option>
+                                    <option value="BR">BRAZIL</option>
+                                    <option value="AR">ARGENTINA</option>
+                                    <option value="ES">SPAIN</option>
+                                </select>
+                            </div>
+
+                            <div style="display: flex; gap: 8px;">
+                                <div class="radio-buscador-box" style="flex: 2; margin: 0; padding: 3px 6px; border: 1px solid var(--verde-oscuro); background: rgba(0,20,0,0.3); display: flex; align-items: center;">
+                                    <span class="prompt-flecha" style="margin-right: 6px;">></span>
+                                    <input type="text" id="input-buscar-satelite" placeholder="SEARCH STATION..." autocomplete="off" style="background: transparent; border: none; color: var(--verde-pipboy); width: 100%; outline: none; font-family: inherit; font-size: 0.8rem;">
+                                </div>
+                                <button id="btn-buscar-satelite" class="boton-pipboy" style="flex: 1; margin: 0; padding: 3px; font-size: 0.8rem;">[ SEARCH ]</button>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- COLUMNA DERECHA: Osciloscopio Expandido con HUD Superpuesto -->
+                    <div class="radio-col-right">
+                        
+                        <div class="radio-pantalla-grande" style="position: relative; padding: 0 !important; overflow: hidden; border: 1px solid var(--verde-oscuro);">
+                            
+                            <!-- Canvas del Osciloscopio ocupando todo el fondo -->
+                            <canvas id="osciloscopio" width="500" height="150" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; z-index: 1; background: rgba(5, 16, 5, 0.95);"></canvas>
+                            
+                            <!-- Degradado inferior protector para garantizar la lectura del texto -->
+                            <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 50%; background: linear-gradient(to top, rgba(0, 15, 0, 0.95), transparent); z-index: 2; pointer-events: none;"></div>
+                            
+                            <!-- HUD táctico superpuesto DENTRO y SOBRE la gráfica -->
+                            <div style="position: absolute; bottom: 10px; left: 10px; right: 10px; display: flex; align-items: center; pointer-events: none; z-index: 3; padding-left: 8px; border-left: 3px solid var(--verde-pipboy);">
+                                <span id="estado-reproduccion" style="font-size: 0.75rem; opacity: 0.9; letter-spacing: 1px; flex-shrink: 0; margin-right: 12px; background: rgba(0, 20, 0, 0.7); padding: 2px 6px;">[ OFF ]</span>
+                                
+                                <div class="pip-ticker" style="flex: 1; min-width: 0; display: block; text-align: left;">
+                                    <span id="nombre-cancion" class="ticker-content" style="font-size: 0.9rem; font-weight: bold; pointer-events: auto; text-shadow: 0 0 4px #000, 0 0 8px var(--verde-pipboy);">WAITING FOR SIGNAL...</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Panel de Resultados de Intercepción (Buscador / Favoritos) -->
+                        <div class="panel-emisoras-zona-pro">
+                            <span id="titulo-resultados" class="sys-texto" style="font-size: 0.75rem; border-bottom: 1px dashed var(--verde-oscuro); padding-bottom: 4px; margin-bottom: 6px; display: block;">INTERCEPTION RESULTS: [ 0 ]</span>
+                            <ul id="lista-resultados-satelite">
+                                <li style="font-size: 0.8rem; color: var(--verde-oscuro); padding: 4px 0;">> Select a country or type a keyword and press [ SEARCH ].</li>
+                            </ul>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="pip-map-bottom-hud">
+                    <div class="map-hud-box map-coords">SYS.SEC // AUDIO-UPLINK</div>
+                    <div class="map-hud-box map-time" id="radio-hora-display">00:00:00</div>
+                    <div class="map-hud-box map-location">FREQUENCY: ACTIVE</div>
+                </div>
+
+                <audio id="audio-pipboy"></audio>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- CARGA DE MÓDULOS JS -->
+    <script src="js/core.js" defer></script>
+    <script src="js/stats.js" defer></script>
+    <script src="js/data.js" defer></script>
+    <script src="js/map.js" defer></script>
+    <script src="js/radio.js" defer></script>
+
+</body>
+</html>
