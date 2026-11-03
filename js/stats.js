@@ -247,20 +247,38 @@ document.addEventListener('DOMContentLoaded', () => {
     window.pipCurrentLon = null;
     let targetCoords = JSON.parse(localStorage.getItem('pip_waypoint')) || null;
 
-    // Lógica para añadir coordenadas con el botón [NAV]
+    // Lógica para añadir coordenadas con el botón [NAV] (Mejorada con "HERE")
+    const distSpan = document.getElementById('waypoint-distance');
+
     if (btnNav) {
         btnNav.addEventListener('click', () => {
             if (window.reproducirSonido) window.reproducirSonido('ui_menu_ok.wav');
-            const input = prompt("ENTER TARGET COORDINATES (LAT, LON)\nLeave empty to clear waypoint.\nExample: 19.0414, -98.2063", targetCoords ? `${targetCoords.lat}, ${targetCoords.lon}` : "");
+            
+            // Sugerimos "HERE" por defecto si no hay objetivo, o mostramos el objetivo actual
+            const sugerencia = targetCoords ? `${targetCoords.lat.toFixed(5)}, ${targetCoords.lon.toFixed(5)}` : "HERE";
+            const input = prompt("ENTER TARGET (LAT, LON)\nType 'HERE' to save your current location.\nLeave empty to clear waypoint.", sugerencia);
             
             if (input === null) return; // Cancelado
             
             if (input.trim() === "") {
+                // Borrar waypoint
                 targetCoords = null;
                 localStorage.removeItem('pip_waypoint');
                 if (questMarker) questMarker.style.display = 'none';
+                if (distSpan) distSpan.style.display = 'none';
                 alert("WAYPOINT CLEARED");
+            } else if (input.trim().toUpperCase() === "HERE") {
+                // Guardar ubicación actual
+                if (window.pipCurrentLat && window.pipCurrentLon) {
+                    targetCoords = { lat: window.pipCurrentLat, lon: window.pipCurrentLon };
+                    localStorage.setItem('pip_waypoint', JSON.stringify(targetCoords));
+                    actualizarDistanciaWaypoint(); // Fuerza la actualización visual
+                    alert("CURRENT LOCATION SAVED AS WAYPOINT");
+                } else {
+                    alert("GPS SIGNAL NOT FOUND YET. WAIT A MOMENT.");
+                }
             } else {
+                // Coordenadas manuales
                 const partes = input.split(',');
                 if (partes.length === 2) {
                     const lat = parseFloat(partes[0].trim());
@@ -268,6 +286,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (!isNaN(lat) && !isNaN(lon)) {
                         targetCoords = { lat, lon };
                         localStorage.setItem('pip_waypoint', JSON.stringify(targetCoords));
+                        actualizarDistanciaWaypoint();
                         alert("WAYPOINT SET");
                     } else {
                         alert("INVALID COORDS FORMAT.");
@@ -275,6 +294,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         });
+    }
+
+    // Función para calcular y mostrar M o KM
+    function actualizarDistanciaWaypoint() {
+        if (targetCoords && window.pipCurrentLat !== null && distSpan) {
+            const distKM = calcularDistancia(window.pipCurrentLat, window.pipCurrentLon, targetCoords.lat, targetCoords.lon);
+            if (distKM < 1) {
+                // Menos de 1 KM, lo pasamos a Metros
+                distSpan.textContent = `TARGET: ${Math.round(distKM * 1000)} M`;
+            } else {
+                // Más de 1 KM, lo mostramos en KM con 2 decimales
+                distSpan.textContent = `TARGET: ${distKM.toFixed(2)} KM`;
+            }
+            distSpan.style.display = 'block';
+        } else if (distSpan) {
+            distSpan.style.display = 'none';
+        }
     }
 
     // Fórmula matemática offline para calcular en qué ángulo está un objetivo (Bearing)
@@ -409,9 +445,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (navigator.geolocation && tripDisplay) {
         navigator.geolocation.watchPosition((pos) => {
-            // Guardamos coordenadas actuales globales para que la brújula y el Waypoint las usen
+            // Guardamos coordenadas actuales globales
             window.pipCurrentLat = pos.coords.latitude;
             window.pipCurrentLon = pos.coords.longitude;
+            
+            // ACTUALIZAMOS LA DISTANCIA DEL WAYPOINT EN VIVO
+            actualizarDistanciaWaypoint();
             
             if (ultimaUbicacion) {
                 const dist = calcularDistancia(ultimaUbicacion.lat, ultimaUbicacion.lon, window.pipCurrentLat, window.pipCurrentLon);
