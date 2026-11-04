@@ -1480,3 +1480,27 @@ body {
     background: var(--verde-pipboy);
     color: var(--fondo-terminal);
 }
+
+/* =====================================================
+   SUB-PESTAÑAS Y GESTOR DE WAYPOINTS
+===================================================== */
+#waypoints-list-container::-webkit-scrollbar {
+    width: 4px;
+}
+#waypoints-list-container::-webkit-scrollbar-thumb {
+    background: var(--verde-oscuro);
+}
+
+.wp-item {
+    display: flex; 
+    align-items: center; 
+    gap: 8px; 
+    border: 1px solid var(--verde-oscuro); 
+    padding: 6px; 
+    background: rgba(0,20,0,0.5);
+}
+
+.wp-item input[type="text"]:focus {
+    outline: none;
+    border-bottom: 1px solid var(--verde-pipboy) !important;
+}

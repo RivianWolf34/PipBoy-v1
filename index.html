@@ -49,16 +49,44 @@
 
         <div class="pip-contenido">
             
-            <!-- MÓDULO 1: STATS -->
+            <!-- ==========================================
+                 MÓDULO 1: STATS (STATUS + WAYPOINTS)
+            ========================================== -->
             <section id="stats-modulo" class="pip-modulo activo">
                 
-                <div class="pip-subnav">
-                    <span class="subnav-item activo">STATUS</span>
-                    <span class="subnav-item">ENV.SENSOR</span>
-                    <span class="subnav-item">SYS.LOG</span>
+                <!-- 1. SUB-MENÚ INTERACTIVO -->
+                <div class="pip-header-bar pip-subnav" style="justify-content: flex-start; gap: 15px; margin-bottom: 1.5vh; font-size: 0.8rem; border-bottom: 1px solid var(--verde-oscuro); padding-bottom: 5px;">
+                    <span id="tab-status" class="pip-sub-tab active" style="cursor:pointer; color: var(--verde-pipboy); font-weight: bold;">STATUS</span>
+                    <span id="tab-waypoints" class="pip-sub-tab" style="cursor:pointer; color: rgba(29, 242, 59, 0.5);">WAYPOINTS</span>
+                    <span style="color: rgba(29, 242, 59, 0.3);">SYS.LOG</span>
                 </div>
 
-                <div class="stats-main-grid">
+                <!-- 2. BRÚJULA COMPARTIDA (Visible en ambas pestañas) -->
+                <div style="width: 100%; position: relative; margin-bottom: 1vh;">
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; width: 100%;">
+                        <button id="btn-add-waypoint" style="background: rgba(0, 20, 0, 0.6); border: 1px solid var(--verde-oscuro); color: var(--verde-pipboy); font-size: 0.65rem; cursor: pointer; padding: 2px 6px; font-family: inherit; transition: all 0.2s;" title="SET WAYPOINT">[+] NAV</button>
+                        <span id="waypoint-distance" style="color: #ffcc00; font-size: 0.65rem; font-weight: bold; text-shadow: 0 0 4px #ffcc00; display: none;">TARGET: -- M</span>
+                    </div>
+                    
+                    <div class="pip-compass-container">
+                        <div class="compass-top-bar">
+                            <div class="compass-center-pointer">▼</div>
+                        </div>
+                        <div class="compass-strip-wrapper" id="compass-wrapper">
+                            <!-- Los marcadores de colores ◈ se inyectarán aquí con JS -->
+                            <div class="compass-strip" id="pip-compass-strip">
+                                <span>N</span><span>NE</span><span>E</span><span>SE</span><span>S</span><span>SW</span><span>W</span><span>NW</span>
+                                <span>N</span><span>NE</span><span>E</span><span>SE</span><span>S</span><span>SW</span><span>W</span><span>NW</span>
+                                <span>N</span><span>NE</span><span>E</span><span>SE</span><span>S</span><span>SW</span><span>W</span><span>NW</span>
+                                <span>N</span><span>NE</span><span>E</span><span>SE</span><span>S</span><span>SW</span><span>W</span><span>NW</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. PANEL: STATUS (Vault Boy y Widgets) -->
+                <div id="panel-status" class="stats-main-grid" style="display: flex;">
                     
                     <!-- Columna Izquierda: Vault Boy con Miras -->
                     <div class="vb-reticle">
@@ -68,50 +96,16 @@
                         <span class="tick left-bot"></span>
                         <span class="tick right-top"></span>
                         <span class="tick right-bot"></span>
-                        
                         <img src="img/vaultboy.gif" alt="Vault Boy" class="vaultboy-anim">
                     </div>
 
                     <!-- Columna Derecha: Reloj Gigante + 6 Widgets Simétricos -->
                     <div class="stats-info-column">
                         
-                        <!-- SECCIÓN DE NAVEGACIÓN Y BRÚJULA TÁCTICA -->
-                        <div style="width: 100%; position: relative;">
-                            
-                            <!-- Barra superior de Navegación: Botón NAV y Distancia al Objetivo -->
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; width: 100%;">
-                                <button id="btn-add-waypoint" style="background: rgba(0, 20, 0, 0.6); border: 1px solid var(--verde-oscuro); color: var(--verde-pipboy); font-size: 0.65rem; cursor: pointer; padding: 2px 6px; font-family: inherit; transition: all 0.2s;" title="SET WAYPOINT">[+] NAV</button>
-                                
-                                <!-- Etiqueta dinámica de distancia al objetivo -->
-                                <span id="waypoint-distance" style="color: #ffcc00; font-size: 0.65rem; font-weight: bold; text-shadow: 0 0 4px #ffcc00; display: none;">TARGET: -- M</span>
-                            </div>
-
-                            <!-- BRÚJULA TÁCTICA ESTILO HUD -->
-                            <div class="pip-compass-container">
-                                <!-- Barra delimitadora superior con el marcador central -->
-                                <div class="compass-top-bar">
-                                    <div class="compass-center-pointer">▼</div>
-                                </div>
-                                
-                                <!-- Cinta deslizante con desvanecimiento, línea central y Waypoint -->
-                                <div class="compass-strip-wrapper" id="compass-wrapper">
-                                    <div id="quest-marker" style="position: absolute; left: 50%; top: 3px; font-size: 0.85rem; color: #ffcc00; text-shadow: 0 0 6px #ffcc00; transition: transform 0.1s linear; display: none; z-index: 5;">◈</div>
-                                    
-                                    <div class="compass-strip" id="pip-compass-strip">
-                                        <span>N</span><span>NE</span><span>E</span><span>SE</span><span>S</span><span>SW</span><span>W</span><span>NW</span>
-                                        <span>N</span><span>NE</span><span>E</span><span>SE</span><span>S</span><span>SW</span><span>W</span><span>NW</span>
-                                        <span>N</span><span>NE</span><span>E</span><span>SE</span><span>S</span><span>SW</span><span>W</span><span>NW</span>
-                                        <span>N</span><span>NE</span><span>E</span><span>SE</span><span>S</span><span>SW</span><span>W</span><span>NW</span>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                        </div>
-
                         <!-- PRIMERA FILA: Cronómetro Táctico, Odómetro y Clima (3 Widgets) -->
                         <div class="pip-combat-widgets" style="margin-bottom: 0.5vh;">
                             
-                            <!-- Widget 1: Cronómetro Táctico con Milisegundos y Botón Dinámico -->
+                            <!-- Widget 1: Cronómetro Táctico -->
                             <div class="pip-widget-box">
                                 <span class="widget-icon">⏱</span>
                                 <div class="widget-data" style="flex: 1; min-width: 0;">
@@ -120,14 +114,13 @@
                                         <span class="widget-value ticker-content" id="chrono-display">00:00:00.00</span>
                                     </div>
                                 </div>
-                                <!-- Micro-botones compactos (Start y el dinámico Pause/Stop) -->
                                 <div class="chrono-btn-group">
                                     <button id="btn-chrono-start" class="chrono-btn">[►]</button>
                                     <button id="btn-chrono-pausestop" class="chrono-btn">[❚❚]</button>
                                 </div>
                             </div>
 
-                            <!-- Widget 2: Odómetro / Contador de Distancia -->
+                            <!-- Widget 2: Odómetro -->
                             <div class="pip-widget-box" style="padding-right: 2px !important;">
                                 <span class="widget-icon">⚑</span>
                                 <div class="widget-data">
@@ -149,7 +142,6 @@
                                     </div>
                                 </div>
                             </div>
-
                         </div>
 
                         <!-- Reloj y Fecha Centrales -->
@@ -198,45 +190,48 @@
                             </div>
 
                         </div>
-
                     </div>
+                </div> <!-- Cierre de panel-status -->
 
+                <!-- 4. PANEL: WAYPOINTS (Gestor de Ubicaciones) -->
+                <div id="panel-waypoints" style="display: none; width: 100%; flex-direction: column; height: 50vh;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <span class="widget-label">STORED LOCATIONS</span>
+                        <button id="btn-create-waypoint" class="boton-pipboy" style="padding: 2px 8px; font-size: 0.7rem;">[+] NEW WAYPOINT</button>
+                    </div>
+                    <div id="waypoints-list-container" style="display: flex; flex-direction: column; gap: 6px; overflow-y: auto; padding-right: 5px; flex: 1;">
+                        <!-- La lista interactiva se dibujará aquí desde stats.js -->
+                    </div>
                 </div>
 
-                <!-- Barra Inferior HUD de STATS (Reorganizada con Ubicación Local) -->
+                <!-- Barra Inferior HUD de STATS -->
                 <div class="pip-bottom-hud" style="display: flex; gap: 1vw; align-items: center; border-top: 2px solid var(--verde-pipboy); padding-top: 1vh; margin-top: auto;">
                     
-                    <!-- Nuevo Espacio de Ubicación (Toma prioridad de espacio) -->
                     <div class="hud-box hud-loc" style="flex: 1.2; display: flex; gap: 8px; align-items: center; overflow: hidden; white-space: nowrap;">
                         <span style="opacity: 0.7; font-size: 0.8rem;">SENSOR LOC:</span>
                         <span id="sensor-location" style="color: var(--verde-pipboy); font-weight: bold; overflow: hidden; text-overflow: ellipsis; font-size: 0.85rem;">PUEBLA, PUE. [MX]</span>
                     </div>
 
-                    <!-- Batería Reducida a la mitad (CORREGIDA PARA MOSTRAR LA BARRA VERDE) -->
                     <div class="hud-box hud-pwr" style="flex: 1; display: flex; gap: 8px; align-items: center;">
                         <span style="font-size: 0.8rem;">PWR [AC]</span>
-                        
-                        <!-- Aumentamos height a 14px y reducimos padding a 1px para que la barra verde exista -->
                         <div class="pip-level-bar" style="flex: 1; min-width: 40px; height: 14px; padding: 1px;">
                             <div class="pip-level-fill" style="width: 100%;"></div>
                         </div>
-                        
                         <span style="font-size: 0.8rem;">100%</span>
                     </div>
 
-                    <!-- Red Reducida y alineada a la derecha -->
                     <div class="hud-box hud-net" style="flex: 0.6; display: flex; justify-content: flex-end; gap: 8px;">
                         <span style="opacity: 0.7; font-size: 0.8rem;">NET</span>
                         <span style="font-size: 0.8rem;">4G // 10Mb</span>
                     </div>
-
                 </div>
 
             </section>
 
-            <!-- MÓDULO 2: DATA -->
+            <!-- ==========================================
+                 MÓDULO 2: DATA 
+            ========================================== -->
             <section id="data-modulo" class="pip-modulo">
-                
                 <div class="pip-subnav">
                     <span class="subnav-item activo">QUESTS</span>
                     <span class="subnav-item">ALERTS</span>
@@ -244,9 +239,7 @@
                 </div>
 
                 <div class="data-two-columns">
-                    
                     <div class="data-col-left">
-                        
                         <div class="data-panel-box">
                             <p class="sys-texto" style="margin-bottom: 10px;">> NEW QUEST ENTRY</p>
                             <div class="data-input-contenedor" style="display: flex; gap: 10px; align-items: center;">
@@ -272,7 +265,6 @@
                             <p class="sys-texto" style="margin-bottom: 6px; font-size: 0.75rem;">> MEMORY STATUS: <span id="data-stats-count" style="color: var(--verde-pipboy);">0 ACTIVE</span></p>
                             <p class="sys-texto" style="margin: 0; font-size: 0.75rem; opacity: 0.7;">> SECURE STORAGE // OK</p>
                         </div>
-
                     </div>
 
                     <div class="data-col-right">
@@ -280,13 +272,11 @@
                             <div class="data-section-header">ACTIVE QUESTS</div>
                             <ul id="lista-tareas" class="lista-quests"></ul>
                         </div>
-
                         <div class="data-list-section">
                             <div class="data-section-header">SCHEDULED ALERTS</div>
                             <ul id="lista-recordatorios" class="lista-quests"></ul>
                         </div>
                     </div>
-
                 </div>
 
                 <div class="pip-map-bottom-hud">
@@ -296,7 +286,9 @@
                 </div>
             </section>
 
-            <!-- MÓDULO 3: MAP -->
+            <!-- ==========================================
+                 MÓDULO 3: MAP
+            ========================================== -->
             <section id="map-modulo" class="pip-modulo">
                 <p class="sys-texto" style="margin-bottom: 5px;">SYS.SEC // 03 — LOCAL MAP</p>
                 
@@ -315,7 +307,9 @@
                 </div>
             </section>
 
-            <!-- MÓDULO 4: RADIO -->
+            <!-- ==========================================
+                 MÓDULO 4: RADIO
+            ========================================== -->
             <section id="radio-modulo" class="pip-modulo">
                 
                 <div class="pip-subnav">
@@ -325,8 +319,6 @@
                 </div>
 
                 <div class="radio-two-columns">
-                    
-                    <!-- COLUMNA IZQUIERDA -->
                     <div class="radio-col-left">
                         <input type="file" id="input-carpeta" webkitdirectory directory multiple accept="audio/*" style="display: none;">
                         
@@ -367,7 +359,6 @@
                         <!-- Buscador Satelital -->
                         <div class="radio-streaming-contenedor" style="border-top: 1px dashed var(--verde-oscuro); padding-top: 6px;">
                             <span class="sys-texto" style="margin-bottom: 4px; display: block; font-size: 0.75rem;">SATELLITE UPLINK — COUNTRY FILTER</span>
-                            
                             <div style="margin-bottom: 6px;">
                                 <select id="select-pais-satelite" style="width: 100%; padding: 5px; background: rgba(15, 79, 22, 0.3); border: 1px solid var(--verde-pipboy); color: var(--verde-pipboy); font-family: inherit; font-size: 0.8rem; outline: none;">
                                     <option value="">[ ALL COUNTRIES / GLOBAL ]</option>
@@ -382,7 +373,6 @@
                                     <option value="ES">SPAIN</option>
                                 </select>
                             </div>
-
                             <div style="display: flex; gap: 8px;">
                                 <div class="radio-buscador-box" style="flex: 2; margin: 0; padding: 3px 6px; border: 1px solid var(--verde-oscuro); background: rgba(0,20,0,0.3); display: flex; align-items: center;">
                                     <span class="prompt-flecha" style="margin-right: 6px;">></span>
@@ -394,37 +384,26 @@
 
                     </div>
 
-                    <!-- COLUMNA DERECHA: Osciloscopio Expandido con HUD Superpuesto -->
                     <div class="radio-col-right">
-                        
                         <div class="radio-pantalla-grande" style="position: relative; padding: 0 !important; overflow: hidden; border: 1px solid var(--verde-oscuro);">
-                            
-                            <!-- Canvas del Osciloscopio ocupando todo el fondo -->
                             <canvas id="osciloscopio" width="500" height="150" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; z-index: 1; background: rgba(5, 16, 5, 0.95);"></canvas>
-                            
-                            <!-- Degradado inferior protector para garantizar la lectura del texto -->
                             <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 50%; background: linear-gradient(to top, rgba(0, 15, 0, 0.95), transparent); z-index: 2; pointer-events: none;"></div>
                             
-                            <!-- HUD táctico superpuesto DENTRO y SOBRE la gráfica -->
                             <div style="position: absolute; bottom: 10px; left: 10px; right: 10px; display: flex; align-items: center; pointer-events: none; z-index: 3; padding-left: 8px; border-left: 3px solid var(--verde-pipboy);">
                                 <span id="estado-reproduccion" style="font-size: 0.75rem; opacity: 0.9; letter-spacing: 1px; flex-shrink: 0; margin-right: 12px; background: rgba(0, 20, 0, 0.7); padding: 2px 6px;">[ OFF ]</span>
-                                
                                 <div class="pip-ticker" style="flex: 1; min-width: 0; display: block; text-align: left;">
                                     <span id="nombre-cancion" class="ticker-content" style="font-size: 0.9rem; font-weight: bold; pointer-events: auto; text-shadow: 0 0 4px #000, 0 0 8px var(--verde-pipboy);">WAITING FOR SIGNAL...</span>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Panel de Resultados de Intercepción (Buscador / Favoritos) -->
                         <div class="panel-emisoras-zona-pro">
                             <span id="titulo-resultados" class="sys-texto" style="font-size: 0.75rem; border-bottom: 1px dashed var(--verde-oscuro); padding-bottom: 4px; margin-bottom: 6px; display: block;">INTERCEPTION RESULTS: [ 0 ]</span>
                             <ul id="lista-resultados-satelite">
                                 <li style="font-size: 0.8rem; color: var(--verde-oscuro); padding: 4px 0;">> Select a country or type a keyword and press [ SEARCH ].</li>
                             </ul>
                         </div>
-
                     </div>
-
                 </div>
 
                 <div class="pip-map-bottom-hud">
