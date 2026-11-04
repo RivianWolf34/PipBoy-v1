@@ -1,10 +1,11 @@
-const CACHE_NAME = 'pipboy-os-v1.0';
+const CACHE_NAME = 'pipboy-os-v2.0';
 const ASSETS = [
     './',
     './index.html',
     './css/styles.css',
     './js/core.js',
     './js/data.js',
+    './js/map.js',
     './js/radio.js',
     './js/stats.js',
     './img/vaultboy.gif',
@@ -22,7 +23,6 @@ const ASSETS = [
     './audio/ui_menu_cancel.wav'
 ];
 
-// INSTALACIÓN: Forzar la descarga inmediata de todos los recursos
 self.addEventListener('install', (e) => {
     e.waitUntil(
         caches.open(CACHE_NAME)
@@ -31,7 +31,6 @@ self.addEventListener('install', (e) => {
     );
 });
 
-// ACTIVACIÓN: Limpiar cachés antiguas y tomar control de la app de inmediato
 self.addEventListener('activate', (e) => {
     e.waitUntil(
         caches.keys().then(keys => {
@@ -43,19 +42,24 @@ self.addEventListener('activate', (e) => {
     self.clients.claim();
 });
 
-// FETCH: Servir siempre desde la caché interna si falla la red (Cache-First)
+// NETWORK-FIRST CON RESPALDO OFFLINE: Siempre fresco en línea, 100% funcional sin señal
 self.addEventListener('fetch', (e) => {
     e.respondWith(
-        caches.match(e.request).then(cachedResponse => {
-            if (cachedResponse) {
-                return cachedResponse; // Devuelve el archivo guardado sin importar si hay internet
-            }
-            return fetch(e.request).catch(() => {
-                // Si falla la red y no está en caché (por ejemplo, radios externas), evita el pantallazo de error
-                if (e.request.destination === 'document') {
-                    return caches.match('./index.html');
+        fetch(e.request)
+            .then(networkResponse => {
+                if (networkResponse && networkResponse.status === 200 && e.request.method === 'GET' && e.request.url.startsWith(self.location.origin)) {
+                    const responseClone = networkResponse.clone();
+                    caches.open(CACHE_NAME).then(cache => cache.put(e.request, responseClone));
                 }
-            });
-        })
+                return networkResponse;
+            })
+            .catch(() => {
+                return caches.match(e.request).then(cachedResponse => {
+                    if (cachedResponse) return cachedResponse;
+                    if (e.request.destination === 'document') {
+                        return caches.match('./index.html');
+                    }
+                });
+            })
     );
 });

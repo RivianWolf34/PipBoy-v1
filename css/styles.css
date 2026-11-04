@@ -980,26 +980,24 @@ body {
 }
 
 /* =====================================================
-   BRÚJULA TÁCTICA ESTILO HUD
+   BRÚJULA TÁCTICA ESTILO HUD (CALIBRADA AL CENTRO 50%)
 ===================================================== */
 .pip-compass-container {
     position: relative;
     width: 100%;
-    height: 32px;
+    height: 28px;
     background: transparent !important;
     border: none !important;
     overflow: hidden;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    margin-bottom: 0.8vh;
 }
 
-/* Barra superior con línea horizontal y marcador central */
 .compass-top-bar {
     position: relative;
     width: 100%;
-    height: 8px;
+    height: 6px;
     border-top: 2px solid var(--verde-pipboy);
     box-shadow: 0 0 5px var(--verde-pipboy);
 }
@@ -1016,11 +1014,10 @@ body {
     text-shadow: 0 0 6px var(--verde-pipboy);
 }
 
-/* Contenedor deslizante con fade lateral y línea horizontal */
 .compass-strip-wrapper {
     position: relative;
     width: 100%;
-    height: 22px;
+    height: 20px;
     display: flex;
     align-items: center;
     overflow: hidden;
@@ -1033,12 +1030,14 @@ body {
 .compass-strip {
     display: flex;
     position: absolute;
-    left: 0;
+    left: 50% !important; /* Anclaje exacto a la mitad de la brújula */
+    top: 0;
+    height: 100%;
     white-space: nowrap;
     will-change: transform;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     font-weight: bold;
-    letter-spacing: 16px;
+    letter-spacing: 0px !important; /* Cero desfase lateral */
     color: var(--verde-pipboy);
     text-shadow: 0 0 5px rgba(29, 242, 59, 0.6);
     align-items: center;
@@ -1047,11 +1046,14 @@ body {
 .compass-strip span {
     display: inline-block;
     text-align: center;
-    min-width: 65px;
+    width: 60px !important;
+    min-width: 60px !important;
+    max-width: 60px !important;
+    flex-shrink: 0;
 }
 
 /* =====================================================
-   CRONÓMETRO TÁCTICO
+   ESTILOS DE CRONÓMETRO, WAYPOINTS Y AJUSTE DE ALTURA
 ===================================================== */
 .chrono-btn-group {
     display: flex;
@@ -1079,54 +1081,69 @@ body {
     color: var(--fondo-terminal);
 }
 
-/* =====================================================
-   ADAPTABILIDAD A DISPOSITIVOS (SECCIÓN INDEPENDIENTE)
-   Si algo no te convence, borra solo esta sección.
-===================================================== */
-
-/* Móvil en horizontal / pantallas bajas */
-@media (max-height: 500px) {
-    .vaultboy-anim { height: clamp(110px, 38vh, 220px) !important; }
-    .vb-reticle { padding: 1.5vh 2vw; }
-    .pip-nav .nav-btn { padding: 0.4vh 0 0.6vh 0; }
-    .splash-content .sys-texto { font-size: clamp(1rem, 4vmin, 1.6rem) !important; }
-    #btn-init-os { margin-top: 1.5vh !important; padding: 1vh 3vw !important; }
+#waypoints-list-container::-webkit-scrollbar {
+    width: 4px;
 }
 
-/* Móvil en vertical: los paneles se apilan en lugar de ir lado a lado */
-@media (max-width: 700px) and (orientation: portrait) {
-    /* STATS */
-    .stats-main-grid { flex-direction: column; justify-content: center; gap: 2vh; padding: 0 1vw; }
-    .vb-reticle { padding: 1.5vh 8vw; }
-    .vaultboy-anim { height: clamp(110px, 24vh, 220px) !important; }
-    .stats-info-column { flex: 0 0 auto; width: 100%; max-width: 100%; }
-    .pip-hora { font-size: clamp(2.2rem, 15vw, 5rem) !important; }
-    .pip-fecha { font-size: clamp(0.8rem, 3.6vw, 1.2rem); }
+#waypoints-list-container::-webkit-scrollbar-thumb {
+    background: var(--verde-pipboy);
+}
 
-    /* Widgets en cuadrícula de 2x2 para que el texto no se corte */
-    .pip-combat-widgets { flex-wrap: wrap; gap: 1.2vw; }
-    .pip-combat-widgets .pip-widget-box { flex: 1 1 calc(50% - 1.2vw); }
-    .pip-widget-box .widget-label { font-size: clamp(0.6rem, 2.6vw, 0.85rem) !important; }
-    .pip-widget-box .widget-value { font-size: clamp(0.8rem, 3.6vw, 1.15rem) !important; }
-    .pip-combat-widgets .pip-widget-box:nth-child(4) .widget-value { font-size: clamp(0.75rem, 3.3vw, 1.05rem) !important; }
+.wp-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid var(--verde-oscuro);
+    padding: 6px 10px;
+    background: rgba(0, 20, 0, 0.45);
+}
 
-    /* DATA */
-    #data-modulo .data-two-columns { flex-direction: column; gap: 1.5vh; }
-    #data-modulo .data-col-left {
-        flex: 0 0 auto !important;
-        min-width: 0 !important;
-        width: 100%;
-        height: auto !important;
-        max-height: 42%;
-        border-right: none;
-        border-bottom: 2px solid var(--verde-oscuro);
-        padding-right: 0;
-        padding-bottom: 1vh;
-    }
-    #data-modulo .data-col-right { flex: 1 1 0 !important; height: auto !important; }
+/* Protección responsiva para que el HUD inferior jamás se corte en móviles ni monitores */
+#stats-modulo.activo {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100% !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+}
 
-    /* RADIO */
-    #radio-modulo .radio-two-columns { flex-direction: column; gap: 1.5vh; }
-    #radio-modulo .radio-col-left { flex: 0 0 auto; height: auto !important; max-height: 42%; padding-right: 0; }
-    #radio-modulo .radio-col-right { flex: 1 1 0 !important; height: auto !important; min-height: 0 !important; }
+#panel-status.stats-main-grid {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 0 1vw;
+    gap: 2.5vw;
+    overflow: hidden;
+}
+
+.vaultboy-anim {
+    height: clamp(120px, 36vh, 320px) !important;
+}
+
+.stats-info-column {
+    gap: 1vh !important;
+    justify-content: center;
+    height: 100%;
+}
+
+.pip-hora {
+    font-size: clamp(1.8rem, 6.8vw, 6.2rem) !important;
+    line-height: 0.9 !important;
+}
+
+.pip-fecha {
+    font-size: clamp(0.7rem, 1.8vw, 1.3rem) !important;
+    margin-top: 0.4vh !important;
+}
+
+#stats-modulo .pip-bottom-hud {
+    flex-shrink: 0;
+    border-top: 2px solid var(--verde-pipboy);
+    padding-top: 0.8vh;
+    padding-bottom: 0.4vh;
+    margin-top: 0.5vh;
+}
+
+#stats-modulo .hud-box {
+    padding: 0.8vh 1.2vw;
 }
