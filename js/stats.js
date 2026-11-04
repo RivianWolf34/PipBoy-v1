@@ -451,27 +451,43 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function procesarOrientacionInteligente(alpha, beta, gamma) {
-        if (alpha === null) return;
+        if (alpha === null || beta === null || gamma === null) return;
         
+        // 1. Convertimos los 3 ejes a radianes
+        const dtr = Math.PI / 180;
+        const _x = beta * dtr;
+        const _y = gamma * dtr;
+        const _z = alpha * dtr;
+
+        const cX = Math.cos(_x);
+        const cY = Math.cos(_y);
+        const cZ = Math.cos(_z);
+        const sX = Math.sin(_x);
+        const sY = Math.sin(_y);
+        const sZ = Math.sin(_z);
+
+        // 2. Calculamos el vector direccional compensando la inclinación de tus manos (Matriz 3D W3C)
+        const Vx = -cZ * sY - sZ * sX * cY;
+        const Vy = -sZ * sY + cZ * sX * cY;
+
+        // 3. Obtenemos el rumbo magnético puro
+        let compassHeading = Math.atan2(Vx, Vy) * (180 / Math.PI);
+        if (compassHeading < 0) compassHeading += 360;
+
+        // 4. Ajustamos según la orientación horizontal de la pantalla
         let anguloPantalla = (window.screen && window.screen.orientation && window.screen.orientation.angle) || window.orientation || 0;
-        
-        // CORRECCIÓN N/S MANTENIENDO E/W: 
-        // Usamos el valor alpha directo, pero ajustamos la lectura según la pantalla.
-        let azimutCorregido = alpha;
 
-        if (beta !== null && gamma !== null) {
-            if (anguloPantalla === 90 || anguloPantalla === -270) {
-                azimutCorregido = alpha - 90;
-            } else if (anguloPantalla === -90 || anguloPantalla === 270) {
-                azimutCorregido = alpha + 90;
-            }
+        if (anguloPantalla === 90 || anguloPantalla === -270) {
+            compassHeading += 90; // Landscape izquierdo
+        } else if (anguloPantalla === -90 || anguloPantalla === 270) {
+            compassHeading -= 90; // Landscape derecho
         }
-        
-        if (azimutCorregido < 0) azimutCorregido += 360;
-        if (azimutCorregido >= 360) azimutCorregido -= 360;
 
-        // Invertimos la dirección de movimiento para corregir el Este/Oeste si es necesario.
-        moverCintaYMarcador(azimutCorregido);
+        // Normalizamos el resultado a 360 grados
+        if (compassHeading < 0) compassHeading += 360;
+        if (compassHeading >= 360) compassHeading -= 360;
+
+        moverCintaYMarcador(compassHeading);
     }
 
     window.testBrujula = function(grados) {
