@@ -213,7 +213,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // 5. TABS, WAYPOINTS MULTIPLES Y BRÚJULA HUD
     // ==========================================
     
-    // --- LÓGICA DE SUB-PESTAÑAS (STATUS / WAYPOINTS) ---
     const tabStatus = document.getElementById('tab-status');
     const tabWaypoints = document.getElementById('tab-waypoints');
     const panelStatus = document.getElementById('panel-status');
@@ -244,7 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- GESTOR DE WAYPOINTS (CRUD OFFLINE) ---
     const listContainer = document.getElementById('waypoints-list-container');
     const btnCreateWP = document.getElementById('btn-create-waypoint');
-    const distSpan = document.getElementById('waypoint-distance');
+    const distancesContainer = document.getElementById('waypoints-distances-container');
     const compassWrapper = document.getElementById('compass-wrapper');
     const compassStrip = document.getElementById('pip-compass-strip');
     
@@ -263,29 +262,49 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!listContainer) return;
         listContainer.innerHTML = '';
         
+        let activos = pipWaypoints.filter(w => w.active).length;
+
         pipWaypoints.forEach((wp, index) => {
             const item = document.createElement('div');
             item.className = 'wp-item';
+            item.style.flexWrap = 'wrap';
             
             const chk = document.createElement('input');
             chk.type = 'checkbox';
             chk.checked = wp.active;
             chk.title = "TRACK ON COMPASS";
             chk.style.cursor = 'pointer';
-            chk.onchange = () => { wp.active = chk.checked; guardarYActualizarWaypoints(); };
+            chk.onchange = () => { 
+                if (!wp.active && activos >= 4) {
+                    alert("MAXIMUM 4 ACTIVE WAYPOINTS ALLOWED.");
+                    chk.checked = false;
+                    return;
+                }
+                wp.active = chk.checked; 
+                guardarYActualizarWaypoints(); 
+            };
             
             const col = document.createElement('input');
             col.type = 'color';
             col.value = wp.color;
-            col.title = "MARKER COLOR";
             col.style.cssText = 'width: 22px; height: 22px; border: none; background: transparent; cursor: pointer; padding: 0;';
             col.onchange = () => { wp.color = col.value; guardarYActualizarWaypoints(); };
+
+            const infoDiv = document.createElement('div');
+            infoDiv.style.cssText = 'flex: 1; display: flex; flex-direction: column; min-width: 120px;';
 
             const nameIn = document.createElement('input');
             nameIn.type = 'text';
             nameIn.value = wp.name;
-            nameIn.style.cssText = 'flex: 1; background: transparent; border: none; border-bottom: 1px dashed var(--verde-oscuro); color: var(--verde-pipboy); font-family: inherit; font-size: 0.75rem;';
+            nameIn.style.cssText = 'background: transparent; border: none; border-bottom: 1px dashed var(--verde-oscuro); color: var(--verde-pipboy); font-family: inherit; font-size: 0.75rem; margin-bottom: 2px;';
             nameIn.onchange = () => { wp.name = nameIn.value.toUpperCase(); guardarYActualizarWaypoints(); };
+
+            const coordsSpan = document.createElement('span');
+            coordsSpan.textContent = `LAT: ${wp.lat.toFixed(5)} // LON: ${wp.lon.toFixed(5)}`;
+            coordsSpan.style.cssText = 'font-size: 0.55rem; color: rgba(29, 242, 59, 0.6);';
+
+            infoDiv.appendChild(nameIn);
+            infoDiv.appendChild(coordsSpan);
 
             const delBtn = document.createElement('button');
             delBtn.textContent = '[X]';
@@ -301,7 +320,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             item.appendChild(chk);
             item.appendChild(col);
-            item.appendChild(nameIn);
+            item.appendChild(infoDiv);
             item.appendChild(delBtn);
             listContainer.appendChild(item);
         });
@@ -330,11 +349,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (partes.length === 2) {
                     lat = parseFloat(partes[0].trim());
                     lon = parseFloat(partes[1].trim());
-                    if (isNaN(lat) || isNaN(lon)) {
-                        alert("INVALID COORDS FORMAT.");
-                        return;
-                    }
+                    if (isNaN(lat) || isNaN(lon)) { alert("INVALID COORDS FORMAT."); return; }
                 } else { return; }
+            }
+
+            if (pipWaypoints.filter(w => w.active).length >= 4) {
+                alert("MAXIMUM 4 ACTIVE WAYPOINTS ALLOWED. New waypoint will be saved as inactive.");
             }
 
             pipWaypoints.push({
@@ -343,48 +363,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 lat: lat,
                 lon: lon,
                 color: "#ffcc00", 
-                active: true
+                active: pipWaypoints.filter(w => w.active).length < 4
             });
             guardarYActualizarWaypoints();
         });
     }
 
-    // Botón [+] NAV Rápido de la Brújula
+    // Botón [+] NAV Rápido - Guardado Instantáneo
     const btnNavRapido = document.getElementById('btn-add-waypoint');
     if (btnNavRapido) {
         btnNavRapido.addEventListener('click', () => {
+            if (!window.pipCurrentLat || !window.pipCurrentLon) {
+                alert("GPS SIGNAL NOT FOUND YET.");
+                return;
+            }
             if (window.reproducirSonido) window.reproducirSonido('ui_menu_ok.wav');
-            const input = prompt("QUICK WAYPOINT (LAT, LON)\nType 'HERE' to save current location.", "HERE");
-            if (!input) return;
 
-            let lat, lon;
-            if (input.trim().toUpperCase() === "HERE") {
-                if (window.pipCurrentLat && window.pipCurrentLon) {
-                    lat = window.pipCurrentLat;
-                    lon = window.pipCurrentLon;
-                } else {
-                    alert("GPS SIGNAL NOT FOUND YET. WAIT A MOMENT.");
-                    return;
-                }
-            } else {
-                const partes = input.split(',');
-                if (partes.length === 2) {
-                    lat = parseFloat(partes[0].trim());
-                    lon = parseFloat(partes[1].trim());
-                    if (isNaN(lat) || isNaN(lon)) return;
-                } else { return; }
+            if (pipWaypoints.filter(w => w.active).length >= 4) {
+                alert("MAXIMUM 4 ACTIVE WAYPOINTS ALLOWED. Quick Nav saved as inactive.");
             }
 
             pipWaypoints.push({
                 id: Date.now(),
                 name: "QUICK NAV",
-                lat: lat,
-                lon: lon,
-                color: "#ffcc00",
-                active: true
+                lat: window.pipCurrentLat,
+                lon: window.pipCurrentLon,
+                color: "#ff2222", // Rojo por defecto para diferenciar
+                active: pipWaypoints.filter(w => w.active).length < 4
             });
             guardarYActualizarWaypoints();
-            alert("QUICK WAYPOINT ADDED");
         });
     }
 
@@ -401,34 +408,26 @@ document.addEventListener('DOMContentLoaded', () => {
         return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
     }
 
+    // Actualización de múltiples distancias
     function actualizarDistanciaWaypoint() {
-        if (window.pipCurrentLat === null || !distSpan) return;
+        if (!distancesContainer) return;
+        distancesContainer.innerHTML = '';
 
-        let closestDist = Infinity;
-        let closestColor = '#ffcc00';
+        if (window.pipCurrentLat === null) return;
 
-        pipWaypoints.forEach(wp => {
-            if (wp.active) {
-                const dist = calcularDistancia(window.pipCurrentLat, window.pipCurrentLon, wp.lat, wp.lon);
-                if (dist < closestDist) {
-                    closestDist = dist;
-                    closestColor = wp.color;
-                }
-            }
+        const activos = pipWaypoints.filter(w => w.active);
+        
+        activos.forEach(wp => {
+            const dist = calcularDistancia(window.pipCurrentLat, window.pipCurrentLon, wp.lat, wp.lon);
+            const distTxt = dist < 1 ? `${Math.round(dist * 1000)} M` : `${dist.toFixed(2)} KM`;
+
+            const span = document.createElement('span');
+            span.textContent = `◈ ${distTxt}`;
+            span.style.color = wp.color;
+            span.style.textShadow = `0 0 4px ${wp.color}`;
+            
+            distancesContainer.appendChild(span);
         });
-
-        if (closestDist !== Infinity) {
-            if (closestDist < 1) {
-                distSpan.textContent = `TARGET: ${Math.round(closestDist * 1000)} M`;
-            } else {
-                distSpan.textContent = `TARGET: ${closestDist.toFixed(2)} KM`;
-            }
-            distSpan.style.color = closestColor;
-            distSpan.style.textShadow = `0 0 4px ${closestColor}`;
-            distSpan.style.display = 'block';
-        } else {
-            distSpan.style.display = 'none';
-        }
     }
 
     // --- BRÚJULA TÁCTICA Y MARCADORES MULTICOLOR ---
@@ -456,25 +455,26 @@ document.addEventListener('DOMContentLoaded', () => {
         
         let anguloPantalla = (window.screen && window.screen.orientation && window.screen.orientation.angle) || window.orientation || 0;
         
-        // CORRECCIÓN BUG ESTE/OESTE: Invertimos alpha restándolo a 360
-        let azimutCorregido = 360 - alpha;
+        // CORRECCIÓN N/S MANTENIENDO E/W: 
+        // Usamos el valor alpha directo, pero ajustamos la lectura según la pantalla.
+        let azimutCorregido = alpha;
 
         if (beta !== null && gamma !== null) {
             if (anguloPantalla === 90 || anguloPantalla === -270) {
-                azimutCorregido = (360 - alpha) - 90;
+                azimutCorregido = alpha - 90;
             } else if (anguloPantalla === -90 || anguloPantalla === 270) {
-                azimutCorregido = (360 - alpha) + 90;
+                azimutCorregido = alpha + 90;
             }
         }
         
         if (azimutCorregido < 0) azimutCorregido += 360;
         if (azimutCorregido >= 360) azimutCorregido -= 360;
 
+        // Invertimos la dirección de movimiento para corregir el Este/Oeste si es necesario.
         moverCintaYMarcador(azimutCorregido);
     }
 
     window.testBrujula = function(grados) {
-        console.log(`Calibrando brújula a ${grados}°...`);
         moverCintaYMarcador(grados);
     };
 
@@ -485,8 +485,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const blockWidth = spanWidth * spansPerBlock; 
         const pxPorGrado = blockWidth / 360;
         const offsetCentroN = blockWidth + (spanWidth / 2);
-        const desplazamientoPx = offsetCentroN + (gradosActuales * pxPorGrado);
         
+        // El movimiento es positivo para ajustar la lectura E/W correctamente
+        const desplazamientoPx = offsetCentroN + (gradosActuales * pxPorGrado);
         compassStrip.style.transform = `translateX(-${desplazamientoPx}px)`;
 
         const marcadoresViejos = compassWrapper.querySelectorAll('.dynamic-marker');

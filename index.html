@@ -61,20 +61,23 @@
                     <span style="color: rgba(29, 242, 59, 0.3);">SYS.LOG</span>
                 </div>
 
-                <!-- 2. BRÚJULA COMPARTIDA (Visible en ambas pestañas) -->
-                <div style="width: 100%; position: relative; margin-bottom: 1vh;">
+                <!-- 2. BRÚJULA COMPARTIDA Y DISTANCIAS MÚLTIPLES -->
+                <div style="width: 100%; position: relative; margin-bottom: 0.5vh;">
                     
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; width: 100%;">
-                        <button id="btn-add-waypoint" style="background: rgba(0, 20, 0, 0.6); border: 1px solid var(--verde-oscuro); color: var(--verde-pipboy); font-size: 0.65rem; cursor: pointer; padding: 2px 6px; font-family: inherit; transition: all 0.2s;" title="SET WAYPOINT">[+] NAV</button>
-                        <span id="waypoint-distance" style="color: #ffcc00; font-size: 0.65rem; font-weight: bold; text-shadow: 0 0 4px #ffcc00; display: none;">TARGET: -- M</span>
+                    <div style="display: flex; justify-content: flex-start; align-items: center; margin-bottom: 4px; width: 100%; gap: 10px;">
+                        <button id="btn-add-waypoint" style="background: rgba(0, 20, 0, 0.6); border: 1px solid var(--verde-oscuro); color: var(--verde-pipboy); font-size: 0.65rem; cursor: pointer; padding: 2px 6px; font-family: inherit; transition: all 0.2s;" title="QUICK SAVE LOCATION">[+] NAV</button>
+                        
+                        <!-- Contenedor dinámico para mostrar hasta 4 distancias -->
+                        <div id="waypoints-distances-container" style="display: flex; gap: 8px; font-size: 0.65rem; font-weight: bold;">
+                            <!-- Las distancias se inyectarán aquí -->
+                        </div>
                     </div>
                     
-                    <div class="pip-compass-container">
+                    <div class="pip-compass-container" style="height: 26px;">
                         <div class="compass-top-bar">
                             <div class="compass-center-pointer">▼</div>
                         </div>
-                        <div class="compass-strip-wrapper" id="compass-wrapper">
-                            <!-- Los marcadores de colores ◈ se inyectarán aquí con JS -->
+                        <div class="compass-strip-wrapper" id="compass-wrapper" style="height: 20px;">
                             <div class="compass-strip" id="pip-compass-strip">
                                 <span>N</span><span>NE</span><span>E</span><span>SE</span><span>S</span><span>SW</span><span>W</span><span>NW</span>
                                 <span>N</span><span>NE</span><span>E</span><span>SE</span><span>S</span><span>SW</span><span>W</span><span>NW</span>
