@@ -1,0 +1,6 @@
+{
+  "appId": "com.rivian.nukeboy",
+  "appName": "Nuke-Boy",
+  "webDir": "www",
+  "bundledWebRuntime": false
+}
