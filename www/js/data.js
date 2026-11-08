@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 0. NAVEGACIÓN ENTRE SUBPESTAÑAS (QUESTS / ALERTS)
     // ==========================================
     function activarSubPestanaData(pestana) {
-        if (window.reproducirSonido) window.reproducirSonido('ui_pipboy_select.wav');
+        if (window.reproducirSonido) window.reproducirSonido('menu_select.wav');
 
         if (panelDataQuests) panelDataQuests.style.display = (pestana === 'quests') ? 'flex' : 'none';
         if (panelDataAlerts) panelDataAlerts.style.display = (pestana === 'alerts') ? 'flex' : 'none';
@@ -81,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (window.AndroidPipBoy && typeof window.AndroidPipBoy.dispararAlarmaNativa === 'function') {
             window.AndroidPipBoy.dispararAlarmaNativa(textoAlerta);
         } else if (typeof window.reproducirSonido === 'function') {
-            window.reproducirSonido('ui_leveluptext.wav', 8.0);
+            window.reproducirSonido('levelup.wav', 8.0);
             let pulsos = 1;
             if (intervaloRepeticionAlarma) clearInterval(intervaloRepeticionAlarma);
             intervaloRepeticionAlarma = setInterval(() => {
@@ -89,7 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     clearInterval(intervaloRepeticionAlarma);
                     return;
                 }
-                window.reproducirSonido('ui_leveluptext.wav', 8.0);
+                window.reproducirSonido('levelup.wav', 8.0);
                 pulsos++;
             }, 1800);
         }
@@ -119,12 +119,15 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (window.AndroidPipBoy && typeof window.AndroidPipBoy.detenerAlarmaNativaJS === 'function') {
                 window.AndroidPipBoy.detenerAlarmaNativaJS();
             }
-            if (window.reproducirSonido) window.reproducirSonido('ui_menu_ok.wav');
+            if (window.reproducirSonido) window.reproducirSonido('menu_ok.wav');
             banner.remove();
         });
     }
 
     setInterval(actualizarRelojData, 1000);
+    window.verificarAlertasDataNativo = function() {
+        verificarDisparoAlertas(Date.now());
+    };
     actualizarRelojData();
 
     // ==========================================
@@ -213,10 +216,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const esEliminar = e.target.closest('.quest-eliminar') || e.target.textContent.trim().toUpperCase() === '[X]';
 
             if (esEliminar) {
-                if (window.reproducirSonido) window.reproducirSonido('ui_menu_cancel.wav');
+                if (window.reproducirSonido) window.reproducirSonido('menu_cancel.wav');
                 misiones.splice(index, 1);
             } else {
-                if (window.reproducirSonido) window.reproducirSonido('ui_menu_ok.wav');
+                if (window.reproducirSonido) window.reproducirSonido('menu_ok.wav');
                 misiones[index].completada = !misiones[index].completada;
             }
 
@@ -286,7 +289,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             btnEliminar.addEventListener('click', (e) => {
                 e.stopPropagation();
-                if (window.reproducirSonido) window.reproducirSonido('ui_menu_cancel.wav');
+                if (window.reproducirSonido) window.reproducirSonido('menu_cancel.wav');
                 recordatorios.splice(index, 1);
                 guardarRecordatorios();
                 renderizarRecordatorios();

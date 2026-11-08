@@ -1,5 +1,8 @@
 package com.rivian.nukeboy;
 
+
+import android.hardware.camera2.CameraCharacteristics;
+import android.hardware.camera2.CameraManager;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Notification;
@@ -13,6 +16,7 @@ import android.content.pm.PackageManager;
 import android.content.pm.ServiceInfo;
 import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
+import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -22,6 +26,7 @@ import android.net.Uri;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.PowerManager;
@@ -30,6 +35,10 @@ import android.os.Vibrator;
 import android.provider.DocumentsContract;
 import android.provider.Settings;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowInsets;
+import android.view.WindowInsetsController;
+import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -42,6 +51,7 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.Locale;
 
+
 public class MainActivity extends BridgeActivity {
 
     private PowerManager.WakeLock wakeLock;
@@ -51,29 +61,24 @@ public class MainActivity extends BridgeActivity {
     private ActivityResultLauncher<Intent> folderPickerLauncher;
     private int slotPistaActual = 0;
     private MediaPlayer alarmPlayer;
+    private boolean linternaActiva = false;
+    private final Handler backgroundClockHandler = new Handler(Looper.getMainLooper());
+    private Runnable backgroundClockRunnable;
 
     @SuppressLint("BatteryLife")
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // ---- MODO INMERSIVO TOTAL (OCULTAR BARRA SUPERIOR) ----
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            getWindow().getAttributes().layoutInDisplayCutoutMode =
-                    android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+        // Aplicar pantalla completa sin bordes ni barra de estado
+        activarModoInmersivoTotal();
+
+        // Eliminar el fondo blanco nativo del WebView que causaba la línea en el borde izquierdo/superior
+        int colorFondo = Color.parseColor("#0a120b");
+        getWindow().getDecorView().setBackgroundColor(colorFondo);
+        if (this.bridge != null && this.bridge.getWebView() != null) {
+            this.bridge.getWebView().setBackgroundColor(colorFondo);
         }
-
-        getWindow().setFlags(
-                android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN
-        );
-
-        View decorView = getWindow().getDecorView();
-        int uiOptions = View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                | View.SYSTEM_UI_FLAG_FULLSCREEN
-                | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
-        decorView.setSystemUiVisibility(uiOptions);
-        // ------------------------------------------------------
 
         limpiarCacheAntigua();
 
@@ -127,11 +132,71 @@ public class MainActivity extends BridgeActivity {
             this.bridge.getWebView().addJavascriptInterface(new AndroidBridge(), "AndroidPipBoy");
         }
 
-        // 5. Arrancar el puente GPS nativo ininterrumpido
+        // 5. Arrancar el puente GPS y el reloj nativo para alarmas/chime con pantalla bloqueada
         iniciarPuenteGPSContinuo();
+        iniciarRelojNativoSegundoPlano();
     }
 
-    // Servicio en Primer Plano para blindar el GPS con pantalla apagada
+    private void activarModoInmersivoTotal() {
+        try {
+            Window window = getWindow();
+            if (window == null) return;
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                WindowManager.LayoutParams lp = window.getAttributes();
+                lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+                window.setAttributes(lp);
+            }
+
+            window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+            window.clearFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                window.setDecorFitsSystemWindows(false);
+                WindowInsetsController controller = window.getInsetsController();
+                if (controller != null) {
+                    controller.hide(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
+                    controller.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+                }
+            }
+
+            View decorView = window.getDecorView();
+            int uiOptions = View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                    | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                    | View.SYSTEM_UI_FLAG_FULLSCREEN
+                    | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
+            decorView.setSystemUiVisibility(uiOptions);
+        } catch (Exception ignored) {}
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) {
+            activarModoInmersivoTotal();
+        }
+    }
+
+    // Pulso nativo cada 5 segundos para garantizar que el Chime horario y las Alarmas suenen con pantalla bloqueada
+    private void iniciarRelojNativoSegundoPlano() {
+        if (backgroundClockRunnable != null) {
+            backgroundClockHandler.removeCallbacks(backgroundClockRunnable);
+        }
+        backgroundClockRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (bridge != null && bridge.getWebView() != null) {
+                    String js = "if(window.pulsoRelojNativo) window.pulsoRelojNativo();";
+                    bridge.getWebView().post(() -> bridge.getWebView().evaluateJavascript(js, null));
+                }
+                backgroundClockHandler.postDelayed(this, 5000);
+            }
+        };
+        backgroundClockHandler.postDelayed(backgroundClockRunnable, 5000);
+    }
+
     public static class GpsKeepAliveService extends Service {
         private static final String CHANNEL_ID = "NukeBoyTelemetryChannel";
 
@@ -155,16 +220,13 @@ public class MainActivity extends BridgeActivity {
 
         @Override
         public int onStartCommand(Intent intent, int flags, int startId) {
-            Notification.Builder builder;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                builder = new Notification.Builder(this, CHANNEL_ID);
-            } else {
-                builder = new Notification.Builder(this);
-            }
+            Notification.Builder builder = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+                    ? new Notification.Builder(this, CHANNEL_ID)
+                    : new Notification.Builder(this);
 
             Notification notification = builder
                     .setContentTitle("Nuke-Boy OS")
-                    .setContentText("GPS & Audio Telemetry Active")
+                    .setContentText("GPS, Alarms & Audio Telemetry Active")
                     .setSmallIcon(android.R.drawable.ic_menu_mylocation)
                     .setOngoing(true)
                     .build();
@@ -212,6 +274,29 @@ public class MainActivity extends BridgeActivity {
     }
 
     public class AndroidBridge {
+
+        @JavascriptInterface
+        public boolean alternarLinternaNativa() {
+            try {
+                CameraManager cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
+                if (cameraManager == null) return false;
+
+                for (String id : cameraManager.getCameraIdList()) {
+                    CameraCharacteristics chars = cameraManager.getCameraCharacteristics(id);
+                    Boolean tieneFlash = chars.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
+                    Integer lensFacing = chars.get(CameraCharacteristics.LENS_FACING);
+
+                    if (Boolean.TRUE.equals(tieneFlash) && (lensFacing == null || lensFacing == CameraCharacteristics.LENS_FACING_BACK)) {
+                        linternaActiva = !linternaActiva;
+                        cameraManager.setTorchMode(id, linternaActiva);
+                        return linternaActiva;
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return false;
+        }
         @JavascriptInterface
         public void seleccionarCarpetaAudio() {
             Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
@@ -270,7 +355,7 @@ public class MainActivity extends BridgeActivity {
                                     .build()
                     );
 
-                    AssetFileDescriptor afd = getAssets().openFd("public/audio/ui_leveluptext.wav");
+                    AssetFileDescriptor afd = getAssets().openFd("public/audio/levelup.wav");
                     alarmPlayer.setDataSource(afd.getFileDescriptor(), afd.getStartOffset(), afd.getLength());
                     afd.close();
 
@@ -278,7 +363,7 @@ public class MainActivity extends BridgeActivity {
                     alarmPlayer.prepare();
                     alarmPlayer.start();
 
-                    new android.os.Handler(Looper.getMainLooper()).postDelayed(() -> detenerAlarmaNativa(), 10000);
+                    new Handler(Looper.getMainLooper()).postDelayed(() -> detenerAlarmaNativa(), 10000);
 
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -308,7 +393,7 @@ public class MainActivity extends BridgeActivity {
                                     .build()
                     );
 
-                    AssetFileDescriptor afd = getAssets().openFd("public/audio/ui_leveluptext.wav");
+                    AssetFileDescriptor afd = getAssets().openFd("public/audio/levelup.wav");
                     chimePlayer.setDataSource(afd.getFileDescriptor(), afd.getStartOffset(), afd.getLength());
                     afd.close();
 
@@ -372,8 +457,10 @@ public class MainActivity extends BridgeActivity {
                             ext = displayName.substring(dotIndex).toLowerCase();
                         }
 
+                        String nombreSinExt = (dotIndex > 0) ? displayName.substring(0, dotIndex) : displayName;
+
                         JSONObject obj = new JSONObject();
-                        obj.put("nombre", displayName.replaceAll("\\.[^/.]+$", "").toUpperCase());
+                        obj.put("nombre", nombreSinExt.toUpperCase());
                         obj.put("uri", fileUri.toString());
                         obj.put("ext", ext);
                         jsonArray.put(obj);
@@ -448,6 +535,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onResume() {
         super.onResume();
+        activarModoInmersivoTotal();
         iniciarPuenteGPSContinuo();
     }
 
@@ -472,6 +560,9 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onDestroy() {
         detenerAlarmaNativa();
+        if (backgroundClockRunnable != null) {
+            backgroundClockHandler.removeCallbacks(backgroundClockRunnable);
+        }
         try {
             stopService(new Intent(this, GpsKeepAliveService.class));
         } catch (Exception ignored) {}

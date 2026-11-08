@@ -1,10 +1,9 @@
 /* =====================================================
-   STATS.JS — TELEMETRÍA, CALIBRADOR, WAYPOINTS Y RADAR TRAIL TÁCTICO
+   STATS.JS — TELEMETRÍA, SKILLS RPG, CALIBRADOR, WAYPOINTS Y RADAR TRAIL
 ===================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
 
-    // Detección temprana de entorno nativo Capacitor
     const isNativeApp = !!(window.Capacitor && (
         (typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform()) ||
         window.Capacitor.isNative
@@ -13,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const { Geolocation, Motion } = CapacitorPlugins;
 
     // ==========================================
-    // 1. RELOJ GIGANTE + CHIME HORARIO (LEVEL-UP)
+    // 1. RELOJ GIGANTE + CHIME HORARIO (CON SOPORTE DE PANTALLA BLOQUEADA)
     // ==========================================
     const displayReloj = document.getElementById('pip-reloj');
     const displayFecha = document.getElementById('pip-fecha');
@@ -36,20 +35,28 @@ document.addEventListener('DOMContentLoaded', () => {
         const mes = String(ahora.getMonth() + 1).padStart(2, '0');
         displayFecha.textContent = `${nombreDia} // ${dia}.${mes}.${ahora.getFullYear()}`;
 
-        // Ventana de 15 segundos por si el reloj salta un segundo con la pantalla apagada
-        if (minutos === 0 && segundos <= 15 && ultimaHoraSonada !== horas) {
+        // Ventana de 59 segundos en el minuto 0 para que nunca se salte el Chime con el teléfono bloqueado
+        if (minutos === 0 && ultimaHoraSonada !== horas) {
             ultimaHoraSonada = horas;
             localStorage.setItem('pip_last_chime_hour', String(horas));
 
             if (window.AndroidPipBoy && typeof window.AndroidPipBoy.reproducirChimeNativo === 'function') {
                 window.AndroidPipBoy.reproducirChimeNativo();
             } else if (typeof window.reproducirSonido === 'function') {
-                window.reproducirSonido('ui_leveluptext.wav', 6.0);
+                window.reproducirSonido('levelup.wav', 6.0);
             }
         }
     }
     setInterval(actualizarReloj, 1000);
     actualizarReloj();
+
+    // Recibe el pulso nativo de Java cada 5 segundos cuando la pantalla está apagada
+    window.pulsoRelojNativo = function() {
+        actualizarReloj();
+        if (typeof window.verificarAlertasDataNativo === 'function') {
+            window.verificarAlertasDataNativo();
+        }
+    };
 
     // ==========================================
     // 2. SISTEMA DE ENERGÍA (BATERÍA REAL)
@@ -353,7 +360,7 @@ document.addEventListener('DOMContentLoaded', () => {
             offsetCalibracion = normalizarGrados(offsetCalibracion + (deltaY * 0.35));
             wheelPosPx -= deltaY;
             soundAcum += Math.abs(deltaY);
-            if (soundAcum > 10) { soundAcum = 0; if (window.reproducirSonido) window.reproducirSonido('ui_pipboy_tuner.wav', 2.5); }
+            if (soundAcum > 10) { soundAcum = 0; if (window.reproducirSonido) window.reproducirSonido('tuner.wav', 2.5); }
             actualizarUICalibrador('DEC: ANALOG WHEEL');
         };
 
@@ -434,7 +441,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const delBtn = document.createElement('button');
             delBtn.textContent = '[X]'; delBtn.className = 'boton-pipboy'; delBtn.style.cssText = 'padding: 2px 8px; margin: 0; font-size: 0.75rem;';
             delBtn.onclick = () => {
-                if (window.reproducirSonido) window.reproducirSonido('ui_menu_cancel.wav');
+                if (window.reproducirSonido) window.reproducirSonido('menu_cancel.wav');
                 pipWaypoints.splice(index, 1); guardarYActualizarWaypoints();
             };
 
@@ -445,13 +452,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnNavRapido) btnNavRapido.addEventListener('click', () => {
         if (window.pipCurrentLat === null) { alert("WAITING FOR REAL GPS SIGNAL..."); return; }
-        if (window.reproducirSonido) window.reproducirSonido('ui_menu_ok.wav');
+        if (window.reproducirSonido) window.reproducirSonido('menu_ok.wav');
         pipWaypoints.push({ id: Date.now(), name: "QUICK WAYPOINT", lat: window.pipCurrentLat, lon: window.pipCurrentLon, color: "#ffcc00", active: pipWaypoints.filter(w => w.active).length < 4 });
         guardarYActualizarWaypoints();
     });
 
     if (btnCreateWP) btnCreateWP.addEventListener('click', () => {
-        if (window.reproducirSonido) window.reproducirSonido('ui_menu_ok.wav');
+        if (window.reproducirSonido) window.reproducirSonido('menu_ok.wav');
         const name = prompt("WAYPOINT NAME:", "NEW LOCATION"); if (!name) return;
         const input = prompt("ENTER COORDINATES (LAT, LON) OR TYPE 'HERE':", "HERE"); if (!input) return;
 
@@ -481,7 +488,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function procesarOrientacionBrazalete(alpha, beta, gamma) {
-        // 1. Seguro contra valores nulos o corruptos (NaN) que congelan la brújula
         if (alpha === null || alpha === undefined || isNaN(alpha)) return;
         if (isNaN(rumboSuavizadoSin) || isNaN(rumboSuavizadoCos)) {
             rumboSuavizadoSin = 0;
@@ -529,7 +535,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (typeof window.dibujarLienzoTrail === 'function') window.dibujarLienzoTrail();
     }
 
-    // 2. Sistema de reinicio en frío para el botón [ ↻ SENSOR ]
     const manejadorOrientacionAbsoluta = (e) => procesarOrientacionBrazalete(e.alpha, e.beta, e.gamma);
     const manejadorOrientacionEstandar = (e) => {
         if (e.webkitCompassHeading !== undefined) {
@@ -577,7 +582,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnCalHardReset) {
         btnCalHardReset.addEventListener('click', () => {
-            if (window.reproducirSonido) window.reproducirSonido('ui_pipboy_tab.wav');
+            if (window.reproducirSonido) window.reproducirSonido('menu_tab.wav');
             reiniciarBusBrujula();
         });
     }
@@ -615,7 +620,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 6. SISTEMA BREADCRUMBS (TRAIL) CON ZOOM, PAN, CUADRÍCULA REAL Y WAYPOINTS
+    // 6. SISTEMA BREADCRUMBS (TRAIL)
     // ==========================================
     const trailCanvas = document.getElementById('trail-canvas');
     const trailStatusBadge = document.getElementById('trail-status-badge');
@@ -658,7 +663,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnZoomIn) {
         btnZoomIn.addEventListener('click', () => {
-            if (window.reproducirSonido) window.reproducirSonido('ui_pipboy_tuner.wav');
+            if (window.reproducirSonido) window.reproducirSonido('tuner.wav');
             if (trailCamMode === 'FIT') trailCamMode = 'FOLLOW';
             trailZoomSpanMetros = Math.max(20, trailZoomSpanMetros * 0.6);
             actualizarBotonesCamaraUI();
@@ -668,7 +673,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnZoomOut) {
         btnZoomOut.addEventListener('click', () => {
-            if (window.reproducirSonido) window.reproducirSonido('ui_pipboy_tuner.wav');
+            if (window.reproducirSonido) window.reproducirSonido('tuner.wav');
             if (trailCamMode === 'FIT') trailCamMode = 'FOLLOW';
             trailZoomSpanMetros = Math.min(2500000, trailZoomSpanMetros * 1.65);
             actualizarBotonesCamaraUI();
@@ -678,7 +683,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnCenterMe) {
         btnCenterMe.addEventListener('click', () => {
-            if (window.reproducirSonido) window.reproducirSonido('ui_pipboy_select.wav');
+            if (window.reproducirSonido) window.reproducirSonido('menu_select.wav');
             trailCamMode = 'FOLLOW';
             actualizarBotonesCamaraUI();
             window.dibujarLienzoTrail();
@@ -687,7 +692,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnFitAll) {
         btnFitAll.addEventListener('click', () => {
-            if (window.reproducirSonido) window.reproducirSonido('ui_pipboy_select.wav');
+            if (window.reproducirSonido) window.reproducirSonido('menu_select.wav');
             trailCamMode = 'FIT';
             actualizarBotonesCamaraUI();
             window.dibujarLienzoTrail();
@@ -785,7 +790,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnTrailStart) btnTrailStart.addEventListener('click', () => {
         if (trailState === 'REC') return;
         trailState = 'REC';
-        if (window.reproducirSonido) window.reproducirSonido('ui_menu_ok.wav');
+        if (window.reproducirSonido) window.reproducirSonido('menu_ok.wav');
         muestrearPuntoTrail();
         guardarEstadoTrail();
         if (trailSamplerInterval) clearInterval(trailSamplerInterval);
@@ -796,7 +801,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (trailState !== 'REC') return;
         trailState = 'PAUSED';
         if (trailSamplerInterval) { clearInterval(trailSamplerInterval); trailSamplerInterval = null; }
-        if (window.reproducirSonido) window.reproducirSonido('ui_pipboy_holotape_stop.wav');
+        if (window.reproducirSonido) window.reproducirSonido('holotape_stop.wav');
         guardarEstadoTrail();
     });
 
@@ -805,7 +810,7 @@ document.addEventListener('DOMContentLoaded', () => {
             esperandoConfirmacionClear = true;
             btnTrailClear.textContent = '[CONFIRM?]';
             btnTrailClear.classList.add('btn-confirm-danger');
-            if (window.reproducirSonido) window.reproducirSonido('ui_pipboy_tuner.wav');
+            if (window.reproducirSonido) window.reproducirSonido('tuner.wav');
             if (confirmClearTimeout) clearTimeout(confirmClearTimeout);
             confirmClearTimeout = setTimeout(() => { esperandoConfirmacionClear = false; btnTrailClear.textContent = '[✕ CLEAR]'; btnTrailClear.classList.remove('btn-confirm-danger'); }, 3500);
         } else {
@@ -814,7 +819,7 @@ document.addEventListener('DOMContentLoaded', () => {
             btnTrailClear.textContent = '[✕ CLEAR]'; btnTrailClear.classList.remove('btn-confirm-danger');
             if (trailSamplerInterval) { clearInterval(trailSamplerInterval); trailSamplerInterval = null; }
             trailState = 'STANDBY'; trailPoints = []; trailDistanceKM = 0;
-            if (window.reproducirSonido) window.reproducirSonido('ui_menu_cancel.wav');
+            if (window.reproducirSonido) window.reproducirSonido('menu_cancel.wav');
             guardarEstadoTrail();
         }
     });
@@ -850,7 +855,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (window.pipCurrentLat !== null) listaNodos.push({ lat: window.pipCurrentLat, lon: window.pipCurrentLon, actual: true });
 
         if (listaNodos.length === 0) {
-            ctx.fillStyle = 'rgba(29, 242, 59, 0.6)'; ctx.font = '14px VT323, monospace'; ctx.textAlign = 'center';
+            ctx.fillStyle = 'rgba(29, 242, 59, 0.6)'; ctx.font = "14px 'Share Tech Mono', monospace"; ctx.textAlign = 'center';
             ctx.fillText('WAITING FOR GPS SIGNAL TO RENDER RADAR...', W / 2, H / 2 - 10);
             return;
         }
@@ -966,7 +971,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.save();
             ctx.fillStyle = wp.color || '#ffcc00';
             ctx.strokeStyle = wp.color || '#ffcc00';
-            ctx.font = '12px VT323, monospace';
+            ctx.font = "12px 'Share Tech Mono', monospace";
 
             if (dentroDePantalla) {
                 ctx.beginPath();
@@ -1015,7 +1020,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ==========================================
-    // 7. MOTOR HÍBRIDO Y RECEPTOR GPS NATIVO CONTINUO (PANTALLA APAGADA)
+    // 7. MOTOR HÍBRIDO Y RECEPTOR GPS NATIVO CONTINUO
     // ==========================================
     const tripDisplay = document.getElementById('trip-distancia');
     const btnResetTrip = document.getElementById('btn-reset-trip');
@@ -1028,7 +1033,7 @@ document.addEventListener('DOMContentLoaded', () => {
         btnResetTrip.addEventListener('click', () => {
             totalKM = 0; localStorage.setItem('pip_trip_km', '0');
             if (tripDisplay) tripDisplay.textContent = '0.00 KM';
-            if (window.reproducirSonido) window.reproducirSonido('ui_menu_cancel.wav');
+            if (window.reproducirSonido) window.reproducirSonido('menu_cancel.wav');
         });
     }
 
@@ -1161,6 +1166,217 @@ document.addEventListener('DOMContentLoaded', () => {
                 localStorage.setItem('pip_chrono_ms', '0');
                 actualizarDisplayChrono();
                 btnPauseStop.textContent = '[❚❚]';
+            }
+        });
+    }
+
+    // ==========================================
+    // 9. SISTEMA DE HABILIDADES RPG (STR, DEX, CON, INT, WIS, CHA)
+    // ==========================================
+    const tabStatus = document.getElementById('tab-stats-status');
+    const tabSkills = document.getElementById('tab-stats-skills');
+    const panelStatus = document.getElementById('panel-status');
+    const panelSkills = document.getElementById('panel-skills');
+    const statsCompassBar = document.getElementById('stats-compass-bar');
+    const skillsBarsRow = document.getElementById('skills-bars-row');
+
+    const STORAGE_SKILLS_KEY = 'pipboy_rpg_skills_v1';
+    const TRES_DIAS_MS = 3 * 24 * 60 * 60 * 1000;
+    const ORDEN_ATRIBUTOS = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
+
+    let skillsData = JSON.parse(localStorage.getItem(STORAGE_SKILLS_KEY)) || {};
+    ORDEN_ATRIBUTOS.forEach(attr => {
+        if (!skillsData[attr] || typeof skillsData[attr].val !== 'number') {
+            skillsData[attr] = { val: 1, lastUpdate: Date.now() };
+        }
+    });
+
+    function activarSubPestanaStats(pestana) {
+     if (window.reproducirSonido) window.reproducirSonido('menu_select.wav');
+     if (panelStatus) panelStatus.style.display = (pestana === 'status') ? 'flex' : 'none';
+     if (panelSkills) panelSkills.style.display = (pestana === 'skills') ? 'flex' : 'none';
+     if (statsCompassBar) statsCompassBar.style.display = (pestana === 'status') ? 'block' : 'none';
+     if (btnToggleCal) btnToggleCal.style.display = (pestana === 'status') ? 'inline-block' : 'none';
+     if (pestana !== 'status' && calPanel) {
+         calPanel.style.display = 'none';
+         if (btnToggleCal) btnToggleCal.classList.remove('activo');
+     }
+
+     if (tabStatus) tabStatus.classList.toggle('activo', pestana === 'status');
+     if (tabSkills) tabSkills.classList.toggle('activo', pestana === 'skills');
+
+     if (pestana === 'skills') {
+         verificarDecadenciaHabilidades();
+         renderizarSkillsUI();
+     }
+ }
+
+    if (tabStatus) tabStatus.addEventListener('click', () => activarSubPestanaStats('status'));
+    if (tabSkills) tabSkills.addEventListener('click', () => activarSubPestanaStats('skills'));
+
+    // Si pasan 3 días sin subir un atributo, baja 1 punto por cada ciclo de 3 días inactivo
+    function verificarDecadenciaHabilidades() {
+        const ahora = Date.now();
+        let huboCambios = false;
+
+        ORDEN_ATRIBUTOS.forEach(attr => {
+            const item = skillsData[attr];
+            const transcurrido = ahora - item.lastUpdate;
+
+            if (transcurrido >= TRES_DIAS_MS) {
+                const ciclosPerdidos = Math.floor(transcurrido / TRES_DIAS_MS);
+                if (item.val > 0) {
+                    item.val = Math.max(0, item.val - ciclosPerdidos);
+                }
+                item.lastUpdate += ciclosPerdidos * TRES_DIAS_MS;
+                huboCambios = true;
+            }
+        });
+
+        if (huboCambios) {
+            localStorage.setItem(STORAGE_SKILLS_KEY, JSON.stringify(skillsData));
+        }
+    }
+
+    function formatearTiempoRestanteDecay(lastUpdateMs) {
+        const restanteMs = Math.max(0, (lastUpdateMs + TRES_DIAS_MS) - Date.now());
+        const horasTotales = Math.floor(restanteMs / (1000 * 60 * 60));
+        const dias = Math.floor(horasTotales / 24);
+        const horas = horasTotales % 24;
+        return `${dias}D ${horas}H`;
+    }
+
+    function mostrarModalConfirmacionRPG(atributo, esSubir, callbackConfirmar) {
+        let modal = document.getElementById('rpg-level-modal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'rpg-level-modal';
+            modal.style.cssText = 'position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,10,0,0.88); z-index:9999; display:flex; justify-content:center; align-items:center;';
+            document.body.appendChild(modal);
+        }
+
+        const tituloModal = esSubir ? `Level up: ${atributo}` : `Level down: ${atributo}`;
+        const valorDestino = esSubir ? skillsData[atributo].val + 1 : skillsData[atributo].val - 1;
+
+        modal.innerHTML = `
+            <div style="background:rgba(5,20,5,0.98); border:2px solid #ffcc00; box-shadow:0 0 24px rgba(255,204,0,0.45); padding:18px 24px; text-align:center; min-width:270px;">
+                <p style="color:#ffcc00; font-size:1.25rem; font-weight:bold; margin-bottom:8px;">[ ${tituloModal} ]</p>
+                <p style="color:var(--verde-pipboy); font-size:0.9rem; margin-bottom:16px;">Set ${atributo} to ${valorDestino}/5 and reset 3-day timer?</p>
+                <div style="display:flex; justify-content:center; gap:14px;">
+                    <button id="rpg-btn-confirm" class="boton-pipboy" style="border-color:#ffcc00; color:#ffcc00; padding:6px 16px; margin:0;">[ CONFIRM ]</button>
+                    <button id="rpg-btn-cancel" class="boton-pipboy" style="padding:6px 16px; margin:0;">[ CANCEL ]</button>
+                </div>
+            </div>
+        `;
+
+        modal.querySelector('#rpg-btn-confirm').addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (window.reproducirSonido) {
+                window.reproducirSonido(esSubir ? 'levelup.wav' : 'menu_ok.wav', 6.0);
+            }
+            callbackConfirmar();
+            modal.remove();
+        });
+
+        modal.querySelector('#rpg-btn-cancel').addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (window.reproducirSonido) window.reproducirSonido('menu_cancel.wav');
+            modal.remove();
+        });
+    }
+
+    function renderizarSkillsUI() {
+        if (!skillsBarsRow) return;
+        skillsBarsRow.innerHTML = '';
+
+        ORDEN_ATRIBUTOS.forEach(attr => {
+            const data = skillsData[attr];
+            const col = document.createElement('div');
+            col.className = 'skill-vertical-col';
+
+            // 5 segmentos apilados de arriba (nivel 5) hacia abajo (nivel 1)
+            let segmentosHTML = '';
+            for (let nivel = 5; nivel >= 1; nivel--) {
+                const lleno = nivel <= data.val;
+                segmentosHTML += `<div class="skill-seg ${lleno ? 'lleno' : ''}"></div>`;
+            }
+
+            col.innerHTML = `
+                <span class="skill-attr-title">${attr}</span>
+                <span class="skill-attr-score">${data.val}/5</span>
+                <div class="skill-bar-tower">
+                    ${segmentosHTML}
+                </div>
+                <span class="skill-decay-timer" title="Time before -1 pt decay">${formatearTiempoRestanteDecay(data.lastUpdate)}</span>
+                <div class="skill-btn-pair">
+                    <button class="chrono-btn btn-skill-plus" title="Subir 1 punto">[+]</button>
+                    <button class="chrono-btn btn-skill-minus" title="Bajar 1 punto">[-]</button>
+                </div>
+            `;
+
+            col.querySelector('.btn-skill-plus').addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (data.val >= 5) return;
+                if (window.reproducirSonido) window.reproducirSonido('menu_ok.wav');
+                mostrarModalConfirmacionRPG(attr, true, () => {
+                    skillsData[attr].val = Math.min(5, skillsData[attr].val + 1);
+                    skillsData[attr].lastUpdate = Date.now();
+                    localStorage.setItem(STORAGE_SKILLS_KEY, JSON.stringify(skillsData));
+                    renderizarSkillsUI();
+                });
+            });
+
+            col.querySelector('.btn-skill-minus').addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (data.val <= 0) return;
+                if (window.reproducirSonido) window.reproducirSonido('menu_ok.wav');
+                mostrarModalConfirmacionRPG(attr, false, () => {
+                    skillsData[attr].val = Math.max(0, skillsData[attr].val - 1);
+                    skillsData[attr].lastUpdate = Date.now();
+                    localStorage.setItem(STORAGE_SKILLS_KEY, JSON.stringify(skillsData));
+                    renderizarSkillsUI();
+                });
+            });
+
+            skillsBarsRow.appendChild(col);
+        });
+    }
+
+    verificarDecadenciaHabilidades();
+    renderizarSkillsUI();
+    setInterval(() => {
+        verificarDecadenciaHabilidades();
+        if (panelSkills && panelSkills.style.display === 'flex') {
+            renderizarSkillsUI();
+        }
+    }, 60000);
+
+    // ==========================================
+    // 10. LINTERNA TÁCTICA (FLASH LED DEL CELULAR)
+    // ==========================================
+    const btnFlashlight = document.getElementById('btn-flashlight');
+    let estadoLinternaLocal = false;
+
+    if (btnFlashlight) {
+        btnFlashlight.addEventListener('click', () => {
+            if (window.AndroidPipBoy && typeof window.AndroidPipBoy.alternarLinternaNativa === 'function') {
+                estadoLinternaLocal = window.AndroidPipBoy.alternarLinternaNativa();
+            } else {
+                estadoLinternaLocal = !estadoLinternaLocal;
+            }
+
+            btnFlashlight.textContent = estadoLinternaLocal ? '[ ☼ LIGHT: ON ]' : '[ ☼ LIGHT: OFF ]';
+            btnFlashlight.classList.toggle('activo', estadoLinternaLocal);
+            if (estadoLinternaLocal) {
+                btnFlashlight.style.setProperty('border-color', '#ffcc00', 'important');
+                btnFlashlight.style.setProperty('background', '#ffcc00', 'important');
+                btnFlashlight.style.setProperty('color', '#0a120b', 'important');
+                btnFlashlight.style.setProperty('box-shadow', '0 0 10px #ffcc00', 'important');
+            } else {
+                btnFlashlight.style.removeProperty('border-color');
+                btnFlashlight.style.removeProperty('background');
+                btnFlashlight.style.removeProperty('color');
+                btnFlashlight.style.removeProperty('box-shadow');
             }
         });
     }

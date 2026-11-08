@@ -346,7 +346,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     function activarSubPestanaRadio(pestana) {
         subPestanaActiva = pestana;
-        if (window.reproducirSonido) window.reproducirSonido('ui_pipboy_select.wav');
+        if (window.reproducirSonido) window.reproducirSonido('menu_select.wav');
         if (panelHolotapes) panelHolotapes.style.display = (pestana === 'holotapes') ? 'flex' : 'none';
         if (panelUplink) panelUplink.style.display = (pestana === 'uplink') ? 'flex' : 'none';
 
@@ -378,6 +378,7 @@ document.addEventListener('DOMContentLoaded', () => {
         displayHoraRadio.textContent = `${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}:${String(ahora.getSeconds()).padStart(2, '0')}`;
     }
     setInterval(actualizarRelojRadio, 1000);
+   
     actualizarRelojRadio();
 
     // ==========================================
@@ -596,6 +597,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnPause) {
         btnPause.addEventListener('click', () => {
+            if (window.reproducirSonido) window.reproducirSonido('holotape_stop.wav');
             audioPipboy.pause();
             if (estadoReproduccion) estadoReproduccion.textContent = "[ PAUSED ]";
             const tituloActual = nombreCancion ? nombreCancion.textContent : 'PIP-BOY AUDIO';
@@ -632,7 +634,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnShuffle) {
         btnShuffle.addEventListener('click', () => {
             modoShuffle = !modoShuffle;
-            if (window.reproducirSonido) window.reproducirSonido('ui_pipboy_select.wav');
+            if (window.reproducirSonido) window.reproducirSonido('menu_select.wav');
             btnShuffle.textContent = modoShuffle ? "[ SHUFFLE: ON ]" : "[ SHUFFLE: OFF ]";
         });
     }
@@ -779,10 +781,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const indexFav = estacionesFavoritas.findIndex(f => f.url === estacionSonandoActual.url);
             if (indexFav >= 0) {
                 estacionesFavoritas.splice(indexFav, 1);
-                if (window.reproducirSonido) window.reproducirSonido('ui_menu_cancel.wav');
+                if (window.reproducirSonido) window.reproducirSonido('menu_cancel.wav');
             } else {
                 estacionesFavoritas.push({ name: estacionSonandoActual.name, url: estacionSonandoActual.url });
-                if (window.reproducirSonido) window.reproducirSonido('ui_menu_ok.wav');
+                if (window.reproducirSonido) window.reproducirSonido('menu_ok.wav');
             }
             guardarFavoritos();
             if (window._ultimasEstaciones) renderizarResultadosEstaciones(window._ultimasEstaciones);
@@ -836,7 +838,7 @@ document.addEventListener('DOMContentLoaded', () => {
         clearTimeout(timerReconexionRadio);
 
         if (!esReconexionSilenciosa && typeof window.reproducirSonido === 'function') {
-            window.reproducirSonido('ui_radio_signalfound.wav');
+            window.reproducirSonido('signal_found.wav');
         }
 
         fuenteActiva = 'radio';
@@ -925,7 +927,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function buscarEmisorasSatelitales() {
-        if (window.reproducirSonido) window.reproducirSonido('ui_pipboy_select.wav');
+        if (window.reproducirSonido) window.reproducirSonido('menu_select.wav');
         const pais = selectPais ? selectPais.value.trim() : '';
         const consulta = inputBusquedaSatelite ? inputBusquedaSatelite.value.trim().toLowerCase() : '';
 

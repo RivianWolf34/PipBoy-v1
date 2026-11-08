@@ -1,9 +1,11 @@
 /* =====================================================
-   PALETA Y VARIABLES PIP-BOY
+   PALETA Y VARIABLES PIP-BOY (VERDE + ÁMBAR TÁCTICO)
 ===================================================== */
 :root {
     --verde-pipboy: #1df23b;
     --verde-oscuro: #0f4f16;
+    --ambar-pipboy: #ffcc00;
+    --ambar-oscuro: rgba(255, 204, 0, 0.28);
     --fondo-terminal: #0a120b;
     --negro-absoluto: #000000;
 }
@@ -12,7 +14,7 @@
    TIPOGRAFÍA MONOFONTO GLOBAL Y RESET GENERAL
 ===================================================== */
 * {
-    font-family: 'VT323', monospace, 'Courier New' !important;
+    font-family: 'Share Tech Mono', monospace !important;
     letter-spacing: 1px;
     margin: 0;
     padding: 0;
@@ -22,15 +24,18 @@
 
 html {
     -webkit-text-size-adjust: 100%;
-    text-size-adjust: 100%; /* Evita que el móvil agrande el texto al rotar */
+    text-size-adjust: 100%;
 }
 
 html, body {
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    background-color: var(--fondo-terminal);
+    width: 100vw !important;
+    height: 100vh !important;
+    overflow: hidden !important;
+    background-color: var(--fondo-terminal) !important;
     color: var(--verde-pipboy);
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
 }
 
 body {
@@ -40,7 +45,7 @@ body {
 }
 
 /* =====================================================
-   EFECTOS CRT Y PANTALLA ANTIGUA
+   EFECTOS CRT Y PANTALLA COMPLETA ESTABLE (SIN FLICKER DE OPACIDAD)
 ===================================================== */
 .scanlines {
     position: fixed;
@@ -61,26 +66,22 @@ body {
 
 .pip-boy-pantalla {
     width: 100vw !important;
-    height: 100vh !important;  /* Respaldo para navegadores sin dvh */
-    height: 100dvh !important; /* Alto real visible en móvil (descuenta barra del navegador) */
-    max-width: 100% !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    max-width: 100vw !important;
+    max-height: 100vh !important;
     margin: 0 !important;
-    padding: 2vh 3.5vw !important;
-    /* Respeta notch y barras del sistema (requiere viewport-fit=cover en el meta viewport) */
-    padding: max(2vh, env(safe-area-inset-top)) max(3.5vw, env(safe-area-inset-right)) max(2vh, env(safe-area-inset-bottom)) max(3.5vw, env(safe-area-inset-left)) !important;
+    padding: 1.2vh 2.2vw !important;
+    border: none !important;
+    outline: none !important;
+    background-color: var(--fondo-terminal) !important;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    animation: textFlicker 0.15s infinite alternate;
-}
-
-@keyframes textFlicker {
-    0% { opacity: 0.95; }
-    100% { opacity: 1; text-shadow: 0 0 4px rgba(29, 242, 59, 0.5); }
 }
 
 /* =====================================================
-   NAVEGACIÓN PRINCIPAL (ESTILO FALLOUT 4)
+   NAVEGACIÓN PRINCIPAL Y SUB-NAVEGACIÓN BICOLOR
 ===================================================== */
 .pip-nav {
     width: 100%;
@@ -116,17 +117,78 @@ body {
     bottom: -2px;
     width: 18%;
     height: 60%;
-    border-top: 2px solid var(--verde-pipboy);
+    border-top: 2px solid var(--ambar-pipboy);
 }
 
 .nav-btn.activo::before {
     left: 0;
-    border-left: 2px solid var(--verde-pipboy);
+    border-left: 2px solid var(--ambar-pipboy);
 }
 
 .nav-btn.activo::after {
     right: 0;
-    border-right: 2px solid var(--verde-pipboy);
+    border-right: 2px solid var(--ambar-pipboy);
+}
+
+.pip-subnav {
+    display: flex;
+    gap: 3vw;
+    padding: 0.8vh 1vw 1.5vh 1vw;
+    font-size: clamp(0.85rem, 2.5vmin, 1.4rem);
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+.subnav-item {
+    color: var(--verde-oscuro);
+    padding-bottom: 2px;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s ease;
+}
+
+.subnav-item.activo {
+    color: var(--verde-pipboy);
+    text-shadow: 0 0 6px var(--verde-pipboy);
+    border-bottom: 2px solid var(--ambar-pipboy);
+}
+
+/* =====================================================
+   CLASES DE ACENTO ÁMBAR UNIFICADAS
+===================================================== */
+.hud-amber-label {
+    color: var(--ambar-pipboy);
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
+.panel-amber-title {
+    color: var(--ambar-pipboy) !important;
+    font-weight: bold;
+    margin-bottom: 10px;
+    opacity: 1 !important;
+    letter-spacing: 1.5px;
+}
+
+.btn-amber-border {
+    border-color: var(--ambar-pipboy) !important;
+    color: var(--ambar-pipboy) !important;
+}
+
+.btn-amber-border:active {
+    background: var(--ambar-pipboy) !important;
+    color: var(--fondo-terminal) !important;
+}
+
+.btn-amber-accent {
+    border-color: var(--ambar-pipboy) !important;
+    color: var(--ambar-pipboy) !important;
+}
+
+.btn-amber-accent.activo,
+.btn-amber-accent:active {
+    background: var(--ambar-pipboy) !important;
+    color: var(--fondo-terminal) !important;
+    box-shadow: 0 0 8px rgba(255, 204, 0, 0.5) !important;
 }
 
 /* =====================================================
@@ -154,107 +216,82 @@ body {
 .sys-texto {
     font-size: 0.8rem;
     margin-bottom: 10px;
-    opacity: 0.8;
+    opacity: 0.85;
 }
 
 /* =====================================================
-   MÓDULO STATS
+   MÓDULO STATS (RELOJ Y WIDGETS BICOLOR)
 ===================================================== */
 #stats-modulo.activo {
-    justify-content: space-between;
-}
-
-.pip-subnav {
     display: flex;
-    gap: 3vw;
-    padding: 0.8vh 1vw 1.5vh 1vw;
-    font-size: clamp(0.85rem, 2.5vmin, 1.4rem);
-    font-weight: bold;
-    letter-spacing: 1px;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100% !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
 }
 
-.subnav-item {
-    color: var(--verde-oscuro);
-}
-
-.subnav-item.activo {
-    color: var(--verde-pipboy);
-    text-shadow: 0 0 6px var(--verde-pipboy);
-}
-
-.stats-main-grid {
-    flex: 1;
+#panel-status.stats-main-grid {
+    flex: 1 1 auto;
     display: flex;
     align-items: center;
     justify-content: space-evenly;
-    gap: 4vw;
-    padding: 0 2vw;
+    min-height: 0;
+    padding: 0 1vw;
+    gap: 2.5vw;
     width: 100%;
+    overflow: hidden;
 }
 
 .vb-reticle {
     position: relative;
-    padding: 3vh 4vw;
+    padding: 1vh 1vw;
     display: flex;
     justify-content: center;
     align-items: center;
 }
 
-.vb-reticle .tick {
-    position: absolute;
-    width: clamp(18px, 3.8vmin, 34px);
-    height: clamp(4px, 0.9vmin, 7px);
-    background: var(--verde-pipboy);
-    box-shadow: 0 0 6px var(--verde-pipboy);
-}
-
-.vb-reticle .tick.top { top: 0; left: 50%; transform: translateX(-50%); }
-.vb-reticle .tick.bottom { bottom: 0; left: 50%; transform: translateX(-50%); }
-.vb-reticle .tick.left-top { left: 0; top: 28%; }
-.vb-reticle .tick.left-bot { left: 0; bottom: 28%; }
-.vb-reticle .tick.right-top { right: 0; top: 28%; }
-.vb-reticle .tick.right-bot { right: 0; bottom: 28%; }
-
-.vaultboy-anim {
-    height: clamp(180px, 48vh, 420px) !important;
+.nuke-anim {
+    height: clamp(115px, 34vh, 300px) !important;
     width: auto;
     image-rendering: pixelated;
-    filter: grayscale(100%) sepia(100%) hue-rotate(75deg) saturate(500%) contrast(1.5) drop-shadow(0 0 5px var(--verde-pipboy));
+    filter: url(#quitar-fondo-blanco) grayscale(100%) sepia(100%) hue-rotate(75deg) saturate(500%) contrast(1.4) drop-shadow(0 0 6px var(--verde-pipboy));
 }
 
-/* ---------- Columna de info: reloj + widgets ---------- */
 .stats-info-column {
     flex: 0 1 65%;
     max-width: 860px;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: 1.5vh;
+    gap: 0.9vh !important;
+    height: 100%;
     box-sizing: border-box;
     overflow: hidden;
 }
 
 .pip-clock-box {
-    border-left: 6px solid var(--verde-pipboy);
+    border-left: 6px solid var(--ambar-pipboy);
     padding-left: 2vw;
     width: 100%;
     box-sizing: border-box;
 }
 
 .pip-hora {
-    font-size: clamp(2rem, 7.5vw, 7.5rem) !important;
+    font-size: clamp(1.8rem, 6.5vw, 6rem) !important;
     font-weight: bold;
-    line-height: 0.95;
+    line-height: 0.9 !important;
     letter-spacing: 0.1vw;
     text-shadow: 0 0 14px var(--verde-pipboy);
     white-space: nowrap;
 }
 
 .pip-fecha {
-    font-size: clamp(0.75rem, 2vw, 1.5rem);
-    margin-top: 0.8vh;
+    font-size: clamp(0.7rem, 1.7vw, 1.25rem) !important;
+    margin-top: 0.3vh !important;
     letter-spacing: 1px;
-    opacity: 0.85;
+    color: var(--ambar-pipboy);
+    font-weight: bold;
 }
 
 .pip-combat-widgets {
@@ -268,8 +305,9 @@ body {
     display: flex;
     align-items: center;
     gap: 0.4vw;
-    background: rgba(15, 79, 22, 0.25);
+    background: rgba(15, 79, 22, 0.22);
     border: 1px solid var(--verde-oscuro);
+    border-top: 1px solid rgba(255, 204, 0, 0.35);
     padding: 1.2vh 0.5vw !important;
     flex: 1;
     min-width: 0;
@@ -277,12 +315,11 @@ body {
     overflow: hidden;
 }
 
-/* Icono (base, por si se usa fuera de un widget) */
 .widget-icon {
     font-size: clamp(1.8rem, 5.2vmin, 3.2rem);
     line-height: 1;
     color: transparent;
-    text-shadow: 0 0 0 var(--verde-pipboy), 0 0 8px var(--verde-pipboy);
+    text-shadow: 0 0 0 var(--ambar-pipboy), 0 0 6px rgba(255, 204, 0, 0.5);
 }
 
 .pip-widget-box .widget-icon {
@@ -290,7 +327,6 @@ body {
     flex-shrink: 0;
 }
 
-/* Datos (base) */
 .widget-data {
     display: flex;
     flex-direction: column;
@@ -306,10 +342,10 @@ body {
     min-width: 0;
 }
 
-/* Etiqueta y valor (base) */
 .widget-label {
     font-size: clamp(0.7rem, 2vmin, 1.15rem);
-    opacity: 0.75;
+    color: var(--ambar-pipboy);
+    font-weight: bold;
     letter-spacing: 1px;
 }
 
@@ -320,7 +356,8 @@ body {
 }
 
 .pip-widget-box .widget-label {
-    font-size: clamp(0.45rem, 1.1vmin, 0.75rem) !important;
+    font-size: clamp(0.48rem, 1.15vmin, 0.75rem) !important;
+    color: var(--ambar-pipboy) !important;
     line-height: 1.1;
     white-space: nowrap;
     overflow: hidden;
@@ -335,16 +372,10 @@ body {
     text-overflow: ellipsis;
 }
 
-/* Cuarto widget (viento / estado del dron): textos algo más largos */
-.pip-combat-widgets .pip-widget-box:nth-child(4) .widget-value {
-    font-size: clamp(0.7rem, 1.8vmin, 1.05rem) !important;
-}
-
-/* Medidor vertical de radiación */
 .rad-meter-vertical {
     width: clamp(5px, 1.2vmin, 10px) !important;
     height: clamp(26px, 5.5vh, 48px) !important;
-    border: 1px solid var(--verde-pipboy);
+    border: 1px solid var(--ambar-pipboy);
     display: flex;
     align-items: flex-end;
     flex-shrink: 0;
@@ -355,7 +386,7 @@ body {
 .rad-fill {
     width: 100%;
     height: 20%;
-    background: var(--verde-pipboy);
+    background: var(--ambar-pipboy);
     transition: height 0.5s ease;
 }
 
@@ -365,25 +396,17 @@ body {
     gap: 1vw;
     align-items: center;
     width: 100%;
-    flex-shrink: 0; /* El HUD nunca se aplasta ni se corta */
+    flex-shrink: 0;
     border-top: 2px solid var(--verde-pipboy);
-    padding-top: 0.5vh;
-    padding-bottom: 0.5vh; /* Margen inferior de seguridad */
-    margin-top: auto;
-}
-
-/* Panel de waypoints: ocupa el espacio libre sin empujar el HUD */
-#panel-waypoints {
-    display: none;
-    width: 100%;
-    flex-direction: column;
-    flex: 1;
-    min-height: 0;
+    padding-top: 0.6vh;
+    padding-bottom: 0.3vh;
+    margin-top: 0.4vh;
 }
 
 .hud-box {
     background: rgba(15, 79, 22, 0.3);
-    padding: 1.4vh 2vw;
+    border: 1px solid var(--verde-oscuro);
+    padding: 0.6vh 1vw;
     display: flex;
     align-items: center;
     gap: 1.5vw;
@@ -410,7 +433,7 @@ body {
 }
 
 /* =====================================================
-   MÓDULO DATA (DOS COLUMNAS)
+   MÓDULO DATA (DOS COLUMNAS CON ACENTOS ÁMBAR)
 ===================================================== */
 #data-modulo.activo {
     display: flex;
@@ -431,7 +454,6 @@ body {
     box-sizing: border-box;
 }
 
-/* Columna izquierda con scroll y ancho mínimo protegido */
 #data-modulo .data-col-left {
     flex: 0 0 40% !important;
     min-width: 250px !important;
@@ -451,7 +473,6 @@ body {
     padding: 2vh 1.5vw;
 }
 
-/* Columna derecha adaptativa */
 #data-modulo .data-col-right {
     flex: 1 1 auto !important;
     display: flex;
@@ -470,8 +491,9 @@ body {
 }
 
 .data-section-header {
-    background: rgba(0, 255, 102, 0.18);
-    border-left: 4px solid var(--verde-pipboy);
+    background: rgba(255, 204, 0, 0.12);
+    border-left: 4px solid var(--ambar-pipboy);
+    color: var(--ambar-pipboy);
     padding: 0.6vh 1vw;
     font-weight: bold;
     font-size: clamp(0.85rem, 2.3vmin, 1.25rem);
@@ -486,10 +508,9 @@ body {
     list-style: none;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
 }
 
-/* Inputs que se encogen sin romper el botón [+] */
 #data-modulo .data-input-contenedor,
 #data-modulo .rec-input-vertical > div {
     display: flex;
@@ -511,7 +532,7 @@ body {
 }
 
 /* =====================================================
-   MÓDULO RADIO (DOS COLUMNAS, SIN DESBORDAMIENTO)
+   MÓDULO RADIO Y SCROLLBARS
 ===================================================== */
 #radio-modulo.pip-modulo.activo {
     display: flex;
@@ -521,124 +542,6 @@ body {
     overflow: hidden !important;
 }
 
-#radio-modulo .radio-two-columns {
-    display: flex;
-    gap: 2.5vw;
-    flex: 1 1 auto !important;
-    height: calc(100% - 70px) !important;
-    min-height: 0 !important;
-    overflow: hidden !important;
-    padding: 1vh 0.5vw;
-    box-sizing: border-box;
-}
-
-/* ---------- Columna izquierda (scroll vertical) ---------- */
-#radio-modulo .radio-col-left {
-    flex: 0 0 44%;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5vh;
-    height: 100% !important;
-    overflow-y: auto !important;
-    padding-right: 0.8vw;
-    box-sizing: border-box;
-}
-
-#radio-modulo .radio-col-left::-webkit-scrollbar {
-    width: 4px;
-}
-
-#radio-modulo .radio-col-left::-webkit-scrollbar-thumb {
-    background: var(--verde-pipboy);
-}
-
-.radio-col-left .panel-emisoras-zona-pro {
-    height: 130px !important;
-    min-height: 130px !important;
-    max-height: 130px !important;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden !important;
-    border: 1px solid var(--verde-pipboy);
-    background: rgba(15, 79, 22, 0.1);
-    padding: 1vh 1vw;
-}
-
-.radio-col-left .panel-emisoras-zona-pro ul {
-    overflow-y: auto !important;
-    flex: 1;
-    padding: 0;
-    margin: 0;
-    list-style: none;
-}
-
-/* ---------- Columna derecha (fija, sin desbordar) ---------- */
-#radio-modulo .radio-col-right {
-    flex: 1 1 auto !important;
-    display: flex;
-    flex-direction: column;
-    height: 100% !important;
-    min-height: 0 !important;
-    max-height: 100% !important;
-    background: rgba(0, 15, 0, 0.5);
-    border: 1px solid var(--verde-oscuro);
-    padding: 1.5vh 1.5vw;
-    gap: 1.5vh;
-    overflow: hidden !important;
-    box-sizing: border-box;
-}
-
-/* Pantalla grande del reproductor: altura fija */
-#radio-modulo .radio-pantalla-grande {
-    flex: 0 0 auto;
-    height: 145px !important;
-    min-height: 145px !important;
-    max-height: 145px !important;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    gap: 1vh;
-    border: 1px solid var(--verde-pipboy);
-    padding: 1.2vh 1vw;
-    background: rgba(15, 79, 22, 0.2);
-    overflow: hidden !important;
-    box-sizing: border-box;
-}
-
-/* Nombre de estación con scroll vertical si es muy largo */
-#radio-modulo #nombre-cancion {
-    max-height: 48px !important;
-    overflow-y: auto !important;
-    font-size: 0.95rem !important;
-    line-height: 1.2;
-    word-break: break-word;
-    padding-right: 4px;
-}
-
-#radio-modulo #nombre-cancion::-webkit-scrollbar {
-    width: 3px;
-}
-
-#radio-modulo #nombre-cancion::-webkit-scrollbar-thumb {
-    background: var(--verde-pipboy);
-}
-
-.radio-col-right .panel-emisoras-zona-pro {
-    flex: 1 1 0% !important;
-    display: flex !important;
-    flex-direction: column !important;
-    min-height: 0 !important;
-    max-height: none !important;
-    border: 1px solid var(--verde-pipboy);
-    background: rgba(15, 79, 22, 0.1);
-    padding: 1vh 1vw;
-    overflow: hidden !important;
-}
-
-.radio-col-right .panel-emisoras-zona-pro ul,
-/* =====================================================
-   SCROLLBARS PIP-BOY EN RADIO Y CONTENEDORES DE 5 LÍNEAS
-===================================================== */
 .pip-scroll-col::-webkit-scrollbar,
 .pip-five-lines-list::-webkit-scrollbar {
     width: 6px;
@@ -656,7 +559,6 @@ body {
     box-shadow: 0 0 6px var(--verde-pipboy);
 }
 
-/* Límite exacto de ~5 estaciones por caja con scroll propio */
 #lista-favoritos-radio.pip-five-lines-list,
 #lista-resultados-satelite.pip-five-lines-list {
     flex: 0 0 auto !important;
@@ -689,8 +591,8 @@ body {
 
 .input-pipboy-fecha {
     background: rgba(0, 20, 0, 0.6);
-    border: 1px solid var(--verde-pipboy);
-    color: var(--verde-pipboy);
+    border: 1px solid var(--ambar-pipboy);
+    color: var(--ambar-pipboy);
     padding: 6px 8px;
     font-size: 0.8rem;
     outline: none;
@@ -703,7 +605,7 @@ body {
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
 }
 
 .quest-vacia {
@@ -717,8 +619,9 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 10px;
-    border: 1px solid transparent;
+    padding: 6px 10px;
+    border: 1px solid rgba(15, 79, 22, 0.45);
+    background: rgba(0, 18, 0, 0.4);
 }
 
 .quest-texto {
@@ -727,107 +630,59 @@ body {
     word-break: break-word;
 }
 
+.quest-texto .check {
+    color: var(--ambar-pipboy);
+    font-weight: bold;
+    margin-right: 4px;
+}
+
 .quest-item.completada .quest-texto {
     color: var(--verde-oscuro);
     text-decoration: line-through;
 }
 
+.quest-item.completada .quest-texto .check {
+    color: var(--verde-oscuro);
+}
+
 .quest-eliminar {
     background: transparent;
     border: none;
-    color: var(--verde-pipboy);
+    color: var(--ambar-pipboy);
     font-weight: bold;
     cursor: pointer;
     margin-left: 10px;
     padding: 4px 8px;
 }
 
-/* Control de volumen */
-.pip-volumen-box {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin: 8px 0;
-    padding: 6px 12px;
-    border: 1px solid var(--verde-oscuro);
-    background: rgba(0, 20, 0, 0.4);
-}
-
-.pip-volumen-label, .pip-volumen-pct {
-    font-size: 0.85rem;
-    font-weight: bold;
-}
-
-.pip-volumen-pct { min-width: 42px; text-align: right; }
-
-.pip-slider {
-    -webkit-appearance: none;
-    appearance: none;
-    flex: 1;
-    height: 6px;
-    background: rgba(0, 255, 102, 0.15);
-    border: 1px solid var(--verde-pipboy);
-    outline: none;
-    cursor: pointer;
-}
-
-.pip-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 14px;
-    height: 20px;
-    background: var(--verde-pipboy);
-    box-shadow: 0 0 8px var(--verde-pipboy);
-}
-
-/* Buscadores y dropdowns */
-.radio-acciones-top { display: flex; gap: 8px; width: 100%; }
-.radio-acciones-top .boton-pipboy { flex: 1; margin-top: 0; }
-
-.radio-buscador-box {
-    display: flex;
-    align-items: center;
-    border: 1px solid var(--verde-oscuro);
-    padding: 4px 8px;
-    background: rgba(0,20,0,0.3);
-}
-
-#input-buscar-cancion, #input-buscar-satelite {
-    background: transparent;
-    border: none;
-    color: var(--verde-pipboy);
-    font-size: 0.9rem;
-    width: 100%;
-    outline: none;
-}
-
-.sugerencias-dropdown {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    width: 100%;
-    max-height: 150px;
-    overflow-y: auto;
-    background: var(--fondo-terminal);
-    border: 1px solid var(--verde-pipboy);
-    list-style: none;
-    z-index: 100;
-    display: none;
-}
-
-.sugerencia-item {
-    padding: 6px 10px;
-    font-size: 0.85rem;
-    cursor: pointer;
-    border-bottom: 1px dotted var(--verde-oscuro);
-    background: rgba(0,20,0,0.9);
-}
-
 /* =====================================================
-   MÓDULO MAPA (EXPANSIBLE A PANTALLA COMPLETA)
+   MÓDULO MAPA Y BARRA LATERAL TÁCTICA DE RADAR
 ===================================================== */
-#google-map-iframe {
+.radar-side-controls {
+    width: 44px;
+    background: rgba(3, 14, 4, 0.96);
+    border-right: 1px solid var(--verde-pipboy);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 6px 4px;
+    z-index: 20;
+    flex-shrink: 0;
+}
+
+#leaflet-map-container {
+    background: #051005 !important;
+    transform: translateZ(0);
+}
+
+#leaflet-map-container .leaflet-tile-pane {
     filter: invert(100%) grayscale(100%) sepia(100%) hue-rotate(75deg) saturate(300%) contrast(1.15) brightness(0.95);
+    will-change: transform;
+}
+
+#leaflet-map-container .leaflet-control-attribution,
+#leaflet-map-container .leaflet-control-zoom {
+    display: none !important;
 }
 
 #mapa-offline {
@@ -849,7 +704,15 @@ body {
     padding: 10px;
 }
 
-#mapa-offline.alerta-discreta h2 { font-size: 0.9rem; margin: 0; }
+#mapa-offline.alerta-discreta h2 {
+    font-size: 0.8rem;
+    margin: 0;
+    color: var(--ambar-pipboy);
+    background: rgba(0, 15, 0, 0.85);
+    padding: 2px 6px;
+    border: 1px solid var(--ambar-pipboy);
+}
+
 #mapa-offline.alerta-discreta p { display: none; }
 
 #map-modulo.pip-modulo.activo {
@@ -861,32 +724,19 @@ body {
     box-sizing: border-box;
 }
 
-#map-modulo #mapa-vista {
-    flex: 1 1 auto !important;
-    height: auto !important;
-    min-height: 0 !important;
-    box-sizing: border-box;
-}
-
-/* Barra HUD inferior de mapas y módulos */
 .pip-map-bottom-hud {
     display: flex;
     gap: 8px;
     width: 100%;
-    margin-top: 1vh;
-}
-
-#map-modulo .pip-map-bottom-hud {
-    flex: 0 0 auto !important;
-    margin-top: 1vh !important;
-    box-sizing: border-box;
+    margin-top: 0.6vh;
+    flex-shrink: 0;
 }
 
 .map-hud-box {
     background: rgba(15, 79, 22, 0.35);
     border: 1px solid var(--verde-oscuro);
-    padding: 0.8vh 1.2vw;
-    font-size: clamp(0.8rem, 2.2vmin, 1.2rem);
+    padding: 0.6vh 1.2vw;
+    font-size: clamp(0.75rem, 2.1vmin, 1.1rem);
     font-weight: bold;
     display: flex;
     align-items: center;
@@ -894,7 +744,7 @@ body {
 }
 
 .map-coords { flex: 1.3; justify-content: flex-start; }
-.map-time { flex: 0.9; justify-content: center; }
+.map-time { flex: 0.8; justify-content: center; color: var(--ambar-pipboy); }
 .map-location { flex: 1.4; justify-content: flex-end; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 
 /* =====================================================
@@ -902,11 +752,8 @@ body {
 ===================================================== */
 .splash-container {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    height: 100dvh;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh; height: 100dvh;
     background: var(--fondo-terminal, #051005);
     z-index: 9999;
     display: flex;
@@ -928,30 +775,32 @@ body {
 }
 
 .splash-content .sys-texto {
-    font-size: clamp(1.4rem, 4.2vmin, 2.4rem) !important;
+    font-size: clamp(1.3rem, 4vmin, 2.2rem) !important;
     margin-bottom: 0.5vh !important;
     line-height: 1.4;
     text-shadow: 0 0 8px rgba(29, 242, 59, 0.4);
 }
 
 #btn-init-os {
-    font-size: clamp(1.5rem, 4.8vmin, 2.8rem) !important;
-    padding: 2vh 4.5vw !important;
-    margin-top: 3vh !important;
-    border: 2px solid var(--verde-pipboy) !important;
+    font-size: clamp(1.4rem, 4.5vmin, 2.6rem) !important;
+    padding: 1.8vh 4vw !important;
+    margin-top: 2vh !important;
+    border: 2px solid var(--ambar-pipboy) !important;
+    color: var(--ambar-pipboy) !important;
     letter-spacing: 2px;
-    box-shadow: 0 0 12px rgba(29, 242, 59, 0.3);
+    box-shadow: 0 0 12px rgba(255, 204, 0, 0.3);
     transition: all 0.2s ease;
 }
 
+#btn-init-os:active,
 #btn-init-os:hover {
-    background: var(--verde-pipboy) !important;
+    background: var(--ambar-pipboy) !important;
     color: var(--fondo-terminal) !important;
-    box-shadow: 0 0 20px var(--verde-pipboy);
+    box-shadow: 0 0 20px var(--ambar-pipboy);
 }
 
 /* =====================================================
-   EFECTO TÁCTICO: DESLIZAMIENTO IZQUIERDA Y FADE IN
+   MARQUESINAS (TICKER)
 ===================================================== */
 .pip-ticker {
     display: block;
@@ -961,7 +810,6 @@ body {
     box-sizing: border-box;
 }
 
-/* Si no necesita animarse, usa puntos suspensivos y se queda quieto */
 .pip-ticker:not(.animating) .ticker-content {
     display: inline-block;
     max-width: 100%;
@@ -970,7 +818,6 @@ body {
     vertical-align: bottom;
 }
 
-/* Si es muy largo, se prepara para el slide */
 .pip-ticker.animating .ticker-content {
     display: inline-block;
     will-change: transform, opacity;
@@ -979,35 +826,20 @@ body {
 }
 
 @keyframes pipFadeTicker {
-    0% {
-        transform: translateX(0);
-        opacity: 1;
-    }
-    80% {
-        transform: translateX(-105%);
-        opacity: 1;
-    }
-    81%, 90% {
-        transform: translateX(-105%);
-        opacity: 0;
-    }
-    91% {
-        transform: translateX(0);
-        opacity: 0;
-    }
-    100% {
-        transform: translateX(0);
-        opacity: 1;
-    }
+    0% { transform: translateX(0); opacity: 1; }
+    80% { transform: translateX(-105%); opacity: 1; }
+    81%, 90% { transform: translateX(-105%); opacity: 0; }
+    91% { transform: translateX(0); opacity: 0; }
+    100% { transform: translateX(0); opacity: 1; }
 }
 
 /* =====================================================
-   BRÚJULA TÁCTICA ESTILO HUD Y CALIBRADOR ANÁLOGO
+   BRÚJULA TÁCTICA Y CALIBRADOR ANÁLOGO
 ===================================================== */
 .pip-compass-container {
     position: relative;
     width: 100%;
-    height: 28px;
+    height: 26px;
     background: transparent !important;
     border: none !important;
     overflow: hidden;
@@ -1019,7 +851,7 @@ body {
 .compass-top-bar {
     position: relative;
     width: 100%;
-    height: 6px;
+    height: 5px;
     border-top: 2px solid var(--verde-pipboy);
     box-shadow: 0 0 5px var(--verde-pipboy);
 }
@@ -1029,17 +861,17 @@ body {
     top: -4px;
     left: 50%;
     transform: translateX(-50%);
-    color: var(--verde-pipboy);
-    font-size: 0.65rem;
+    color: var(--ambar-pipboy);
+    font-size: 0.7rem;
     line-height: 1;
     z-index: 5;
-    text-shadow: 0 0 6px var(--verde-pipboy);
+    text-shadow: 0 0 6px var(--ambar-pipboy);
 }
 
 .compass-strip-wrapper {
     position: relative;
     width: 100%;
-    height: 20px;
+    height: 19px;
     display: flex;
     align-items: center;
     overflow: hidden;
@@ -1074,11 +906,10 @@ body {
     flex-shrink: 0;
 }
 
-/* Ruedita Vertical Análoga (Synth Pitch / Wah Wheel) */
 #synth-wheel-housing {
     position: relative;
     width: 28px;
-    height: 58px;
+    height: 54px;
     background: #030a04;
     border: 2px solid var(--verde-pipboy);
     border-radius: 6px;
@@ -1109,13 +940,12 @@ body {
     left: 0;
     right: 0;
     height: 2px;
-    background: #ffcc00;
-    box-shadow: 0 0 4px #ffcc00;
+    background: var(--ambar-pipboy);
+    box-shadow: 0 0 4px var(--ambar-pipboy);
     transform: translateY(-50%);
     pointer-events: none;
 }
 
-/* Tambores individuales XXX.XX */
 .cal-digit-box {
     display: flex;
     flex-direction: column;
@@ -1129,7 +959,7 @@ body {
 .cal-step-btn {
     background: transparent;
     border: none;
-    color: var(--verde-pipboy);
+    color: var(--ambar-pipboy);
     font-size: 0.55rem;
     line-height: 1;
     padding: 2px 0;
@@ -1138,7 +968,7 @@ body {
 }
 
 .cal-step-btn:active {
-    background: var(--verde-pipboy);
+    background: var(--ambar-pipboy);
     color: var(--fondo-terminal);
 }
 
@@ -1150,7 +980,7 @@ body {
     text-shadow: 0 0 5px var(--verde-pipboy);
 }
 
-/* Cronómetro y Waypoints */
+/* Botones Tácticos */
 .chrono-btn-group {
     display: flex;
     flex-direction: column;
@@ -1159,7 +989,6 @@ body {
     flex-shrink: 0;
 }
 
-/* Estado normal de los botones tácticos */
 .chrono-btn {
     background: rgba(0, 20, 0, 0.85) !important;
     border: 1px solid var(--verde-oscuro) !important;
@@ -1173,7 +1002,6 @@ body {
     transition: background 0.1s ease, color 0.1s ease;
 }
 
-/* Estado activo permanente (ej. [⌖ ME] o [⛶ FIT]) o mientras el dedo presiona el botón */
 .chrono-btn.activo,
 .chrono-btn:active {
     border-color: var(--verde-pipboy) !important;
@@ -1182,7 +1010,6 @@ body {
     box-shadow: 0 0 8px rgba(29, 242, 59, 0.5);
 }
 
-/* Evita que el hover se quede pegado en pantallas táctiles */
 @media (hover: hover) and (pointer: fine) {
     .chrono-btn:hover {
         border-color: var(--verde-pipboy) !important;
@@ -1196,326 +1023,115 @@ body {
     align-items: center;
     gap: 10px;
     border: 1px solid var(--verde-oscuro);
-    padding: 6px 10px;
-    background: rgba(0, 20, 0, 0.45);
-}
-
-/* Ajuste responsivo para evitar que el HUD inferior se corte */
-#stats-modulo.activo {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    height: 100% !important;
-    max-height: 100% !important;
-    overflow: hidden !important;
-}
-
-#panel-status.stats-main-grid {
-    flex: 1 1 auto;
-    min-height: 0;
-    padding: 0 1vw;
-    gap: 2.5vw;
-    overflow: hidden;
-}
-
-.vb-reticle {
-    position: relative;
-    padding: 1vh 1vw;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.vaultboy-anim {
-    height: clamp(130px, 38vh, 320px) !important;
-    width: auto;
-    image-rendering: pixelated;
-    /* Aplica primero el recorte de fondo blanco y luego el tinte verde del sistema */
-    filter: url(#quitar-fondo-blanco) grayscale(100%) sepia(100%) hue-rotate(75deg) saturate(500%) contrast(1.4) drop-shadow(0 0 6px var(--verde-pipboy));
-}
-
-.stats-info-column {
-    gap: 0.9vh !important;
-    justify-content: center;
-    height: 100%;
-}
-
-.pip-hora {
-    font-size: clamp(1.8rem, 6.5vw, 6rem) !important;
-    line-height: 0.9 !important;
-}
-
-.pip-fecha {
-    font-size: clamp(0.7rem, 1.7vw, 1.25rem) !important;
-    margin-top: 0.3vh !important;
-}
-
-#stats-modulo .pip-bottom-hud {
-    flex-shrink: 0;
-    border-top: 2px solid var(--verde-pipboy);
-    padding-top: 0.6vh;
-    padding-bottom: 0.3vh;
-    margin-top: 0.4vh;
-}
-
-#stats-modulo .hud-box {
-    padding: 0.6vh 1vw;
-}
-
-/* =====================================================
-   FILTRO RETRO PIP-BOY PARA MAPA LEAFLET CON CACHÉ OFFLINE
-===================================================== */
-#leaflet-map-container {
-    background: #051005 !important;
-}
-
-#leaflet-map-container .leaflet-tile-pane {
-    filter: invert(100%) grayscale(100%) sepia(100%) hue-rotate(75deg) saturate(300%) contrast(1.15) brightness(0.95);
-}
-
-#leaflet-map-container .leaflet-control-attribution {
-    display: none !important;
-}
-
-#leaflet-map-container .leaflet-control-zoom a {
-    background: rgba(5, 20, 5, 0.9) !important;
-    color: var(--verde-pipboy) !important;
-    border-color: var(--verde-pipboy) !important;
-}
-
-/* =====================================================
-   BRÚJULA TÁCTICA, CALIBRADOR Y RASTRO (BREADCRUMBS)
-===================================================== */
-.pip-compass-container {
-    position: relative;
-    width: 100%;
-    height: 28px;
-    background: transparent !important;
-    border: none !important;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-}
-
-.compass-top-bar {
-    position: relative;
-    width: 100%;
-    height: 6px;
-    border-top: 2px solid var(--verde-pipboy);
-    box-shadow: 0 0 5px var(--verde-pipboy);
-}
-
-.compass-center-pointer {
-    position: absolute;
-    top: -4px;
-    left: 50%;
-    transform: translateX(-50%);
-    color: var(--verde-pipboy);
-    font-size: 0.65rem;
-    line-height: 1;
-    z-index: 5;
-    text-shadow: 0 0 6px var(--verde-pipboy);
-}
-
-.compass-strip-wrapper {
-    position: relative;
-    width: 100%;
-    height: 20px;
-    display: flex;
-    align-items: center;
-    overflow: hidden;
-    border-top: 1px solid rgba(29, 242, 59, 0.7);
-    box-shadow: 0 0 4px rgba(29, 242, 59, 0.4);
-    -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,1) 20%, rgba(0,0,0,1) 80%, transparent 100%);
-    mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,1) 20%, rgba(0,0,0,1) 80%, transparent 100%);
-}
-
-.compass-strip {
-    display: flex;
-    position: absolute;
-    left: 50% !important;
-    top: 0;
-    height: 100%;
-    white-space: nowrap;
-    will-change: transform;
-    font-size: 0.85rem;
-    font-weight: bold;
-    letter-spacing: 0px !important;
-    color: var(--verde-pipboy);
-    text-shadow: 0 0 5px rgba(29, 242, 59, 0.6);
-    align-items: center;
-}
-
-.compass-strip span {
-    display: inline-block;
-    text-align: center;
-    width: 60px !important;
-    min-width: 60px !important;
-    max-width: 60px !important;
-    flex-shrink: 0;
-}
-
-#synth-wheel-housing {
-    position: relative;
-    width: 28px;
-    height: 58px;
-    background: #030a04;
-    border: 2px solid var(--verde-pipboy);
-    border-radius: 6px;
-    overflow: hidden;
-    cursor: ns-resize;
-    box-shadow: inset 0 10px 10px rgba(0, 0, 0, 0.9), inset 0 -10px 10px rgba(0, 0, 0, 0.9), 0 0 6px rgba(29, 242, 59, 0.4);
-    touch-action: none;
-    flex-shrink: 0;
-}
-
-#synth-wheel-ridges {
-    width: 100%;
-    height: 100%;
-    background-image: repeating-linear-gradient(
-        to bottom,
-        var(--verde-pipboy) 0px,
-        var(--verde-pipboy) 2px,
-        transparent 2px,
-        transparent 7px
-    );
-    opacity: 0.85;
-    pointer-events: none;
-}
-
-#synth-wheel-center-line {
-    position: absolute;
-    top: 50%;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: #ffcc00;
-    box-shadow: 0 0 4px #ffcc00;
-    transform: translateY(-50%);
-    pointer-events: none;
-}
-
-.cal-digit-box {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    background: rgba(0, 20, 0, 0.7);
-    border: 1px solid var(--verde-oscuro);
-    padding: 1px;
-    width: 22px;
-}
-
-.cal-step-btn {
-    background: transparent;
-    border: none;
-    color: var(--verde-pipboy);
-    font-size: 0.55rem;
-    line-height: 1;
-    padding: 2px 0;
-    cursor: pointer;
-    width: 100%;
-}
-
-.cal-step-btn:active {
-    background: var(--verde-pipboy);
-    color: var(--fondo-terminal);
-}
-
-.cal-digit-val {
-    font-size: 0.85rem;
-    font-weight: bold;
-    line-height: 1.1;
-    color: var(--verde-pipboy);
-    text-shadow: 0 0 5px var(--verde-pipboy);
-}
-
-.chrono-btn-group {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    margin-left: 4px;
-    flex-shrink: 0;
-}
-
-.chrono-btn {
-    background: rgba(0, 20, 0, 0.6);
-    border: 1px solid var(--verde-oscuro);
-    color: var(--verde-pipboy);
-    font-size: 0.65rem;
-    padding: 2px 5px;
-    cursor: pointer;
-    font-family: inherit;
-    line-height: 1;
-    text-align: center;
-}
-
-.chrono-btn:hover, .chrono-btn.activo {
-    border-color: var(--verde-pipboy);
-    background: var(--verde-pipboy);
-    color: var(--fondo-terminal);
-}
-
-.wp-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    border: 1px solid var(--verde-oscuro);
+    border-left: 3px solid var(--ambar-pipboy);
     padding: 6px 10px;
     background: rgba(0, 20, 0, 0.45);
 }
 
 .btn-confirm-danger {
-    border-color: #ffcc00 !important;
-    color: #ffcc00 !important;
+    border-color: var(--ambar-pipboy) !important;
+    color: var(--ambar-pipboy) !important;
     box-shadow: 0 0 8px rgba(255, 204, 0, 0.5);
 }
 
-#stats-modulo.activo {
+/* Barras Verticales de Atributos RPG (Subpestaña SKILLS) */
+.skill-vertical-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(0, 18, 0, 0.65);
+    border: 1px solid var(--verde-oscuro);
+    padding: 6px 4px;
+    height: 100%;
+    min-height: 0;
+}
+
+.skill-attr-title {
+    font-size: 0.85rem;
+    font-weight: bold;
+    color: var(--ambar-pipboy);
+}
+
+.skill-attr-score {
+    font-size: 0.7rem;
+    opacity: 0.9;
+    margin-bottom: 2px;
+}
+
+.skill-bar-tower {
+    flex: 1;
+    width: 22px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    height: 100% !important;
-    max-height: 100% !important;
-    overflow: hidden !important;
+    gap: 4px;
+    padding: 4px 3px;
+    border: 1px solid var(--verde-pipboy);
+    background: rgba(0, 12, 0, 0.85);
+    margin: 4px 0;
+    min-height: 60px;
 }
 
-#panel-status.stats-main-grid {
-    flex: 1 1 auto;
-    min-height: 0;
-    padding: 0 1vw;
-    gap: 2.5vw;
-    overflow: hidden;
+.skill-seg {
+    flex: 1;
+    width: 100%;
+    background: rgba(15, 79, 22, 0.35);
+    border: 1px solid rgba(29, 242, 59, 0.2);
+    transition: all 0.2s ease;
 }
 
-.vaultboy-anim {
-    height: clamp(115px, 34vh, 300px) !important;
+.skill-seg.lleno {
+    background: var(--verde-pipboy);
+    box-shadow: 0 0 8px var(--verde-pipboy);
+    border-color: var(--verde-pipboy);
 }
 
-.stats-info-column {
-    gap: 0.9vh !important;
-    justify-content: center;
-    height: 100%;
+.skill-decay-timer {
+    font-size: 0.58rem;
+    color: var(--ambar-pipboy);
+    opacity: 0.85;
+    margin-bottom: 3px;
+    white-space: nowrap;
 }
 
-.pip-hora {
-    font-size: clamp(1.8rem, 6.5vw, 6rem) !important;
-    line-height: 0.9 !important;
+.skill-btn-pair {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    width: 100%;
 }
 
-.pip-fecha {
-    font-size: clamp(0.7rem, 1.7vw, 1.25rem) !important;
-    margin-top: 0.3vh !important;
+.skill-btn-pair .chrono-btn {
+    width: 100%;
+    padding: 3px 0 !important;
+    font-size: 0.7rem !important;
+    font-weight: bold;
 }
 
-#stats-modulo .pip-bottom-hud {
-    flex-shrink: 0;
-    border-top: 2px solid var(--verde-pipboy);
-    padding-top: 0.6vh;
-    padding-bottom: 0.3vh;
-    margin-top: 0.4vh;
+.skills-ref-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.72rem;
+    text-align: left;
 }
 
-#stats-modulo .hud-box {
-    padding: 0.6vh 1vw;
+.skills-ref-table th {
+    border-bottom: 1px solid var(--verde-pipboy);
+    padding: 4px 6px;
+    color: var(--ambar-pipboy);
+    font-size: 0.7rem;
+}
+
+.skills-ref-table td {
+    border-bottom: 1px dotted var(--verde-oscuro);
+    padding: 5px 6px;
+    line-height: 1.25;
+}
+
+.skills-ref-table td.attr-col {
+    font-weight: bold;
+    color: var(--ambar-pipboy);
+    width: 16%;
+    vertical-align: top;
 }

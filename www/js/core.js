@@ -4,20 +4,15 @@
 
 document.addEventListener('DOMContentLoaded', () => {
     
-    // ==========================================
-    // 1. MOTOR DE AUDIO UI Y VOLUMEN COMPARTIDO
-    // ==========================================
     let uiAudioCtx = null;
     let compresorUI = null;
     const buffersAudio = {}; 
     const reproductoresMusica = new Set();
     let timeoutDucking = null;
 
-    // Volumen global compartido (0.0 a 1.0)
     window.pipboyVolumenLineal = parseFloat(localStorage.getItem('pipboy_vol_musica') ?? '0.80');
     if (isNaN(window.pipboyVolumenLineal)) window.pipboyVolumenLineal = 0.80;
 
-    // Curva exponencial suave para que de 0% a 100% (incluido 75%-100%) sea perceptible
     window.calcularVolumenAcustico = function(pct0a1) {
         const limpio = Math.max(0, Math.min(1, pct0a1));
         if (limpio === 0) return 0;
@@ -30,24 +25,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const GANANCIA_BOTONES = 8.0;
 
-    // Atenuar la música un instante al presionar cualquier botón (Auto-Ducking)
     function aplicarDucking() {
         const volNormal = window.calcularVolumenAcustico(window.pipboyVolumenLineal);
         const volAtenuado = volNormal * 0.30;
 
         reproductoresMusica.forEach(media => {
-            if (!media.paused) {
-                media.volume = volAtenuado;
-            }
+            if (!media.paused) media.volume = volAtenuado;
         });
 
         if (timeoutDucking) clearTimeout(timeoutDucking);
         timeoutDucking = setTimeout(() => {
             const volRestaurado = window.calcularVolumenAcustico(window.pipboyVolumenLineal);
             reproductoresMusica.forEach(media => {
-                if (!media.paused) {
-                    media.volume = volRestaurado;
-                }
+                if (!media.paused) media.volume = volRestaurado;
             });
         }, 220);
     }
@@ -75,6 +65,10 @@ document.addEventListener('DOMContentLoaded', () => {
             aplicarDucking();
 
             const ruta = nombreArchivo.startsWith('audio/') ? nombreArchivo : `audio/${nombreArchivo}`;
+            
+            // Si es signal_found.wav, usamos 0.55 directo (55% de su volumen natural, sin sobre-amplificar)
+            const esSignalFound = ruta.includes('signal_found.wav');
+            const gananciaFinal = esSignalFound ? 0.55 : ganancia;
 
             if (uiAudioCtx) {
                 if (!buffersAudio[ruta]) {
@@ -87,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 fuente.buffer = buffersAudio[ruta];
 
                 const amplificador = uiAudioCtx.createGain();
-                amplificador.gain.setValueAtTime(ganancia, uiAudioCtx.currentTime);
+                amplificador.gain.setValueAtTime(gananciaFinal, uiAudioCtx.currentTime);
 
                 fuente.connect(amplificador);
                 amplificador.connect(compresorUI);
@@ -95,53 +89,69 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 const audio = new Audio(ruta);
                 audio.dataset.esEfectoUi = 'true';
-                audio.volume = 1.0;
+                audio.volume = esSignalFound ? 0.55 : 1.0;
                 audio.play().catch(() => {});
             }
         } catch (err) {
             const ruta = nombreArchivo.startsWith('audio/') ? nombreArchivo : `audio/${nombreArchivo}`;
             const audio = new Audio(ruta);
             audio.dataset.esEfectoUi = 'true';
-            audio.volume = 1.0;
+            audio.volume = ruta.includes('signal_found.wav') ? 0.55 : 1.0;
             audio.play().catch(() => {});
         }
     };
 
     // ==========================================
-    // 2. PANTALLA DE ARRANQUE (BOOT SCREEN)
+    // 2. PANTALLA DE ARRANQUE CON ESCRITURA EN MONITOR (3.0 SEGUNDOS)
     // ==========================================
     const splashScreen = document.getElementById('splash-screen');
     const btnInitOs = document.getElementById('btn-init-os');
-    const splashLoadingText = document.getElementById('splash-loading-text');
+    const splashStaticHeader = document.getElementById('splash-static-header');
+    const splashTypewriterBox = document.getElementById('splash-typewriter-box');
 
     if (splashScreen && btnInitOs) {
-        btnInitOs.addEventListener('click', () => {
-            window.reproducirSonido('ui_loadscreen_initial.wav', 5.0);
-            
+        btnInitOs.addEventListener('click', (e) => {
+            e.stopPropagation();
+            window.reproducirSonido('load_screen.wav', 5.0);
+
             btnInitOs.style.display = 'none';
-            splashLoadingText.style.display = 'block';
-            
-            let contador = 0;
-            const textosCarga = [
-                "> Cargando Kernel...",
-                "> Verificando memoria RAM...",
-                "> Inicializando Holo-Drive...",
-                "> Calibrando UI Satelital...",
-                "> [ SISTEMA LISTO ]"
-            ];
-            
-            const intervalo = setInterval(() => {
-                splashLoadingText.textContent = textosCarga[contador];
-                contador++;
-                
-                if (contador >= textosCarga.length) {
-                    clearInterval(intervalo);
-                    setTimeout(() => {
-                        splashScreen.style.opacity = '0';
-                        setTimeout(() => splashScreen.remove(), 500);
-                    }, 800);
+            if (splashStaticHeader) splashStaticHeader.style.display = 'none';
+            if (splashTypewriterBox) splashTypewriterBox.style.display = 'block';
+
+            const textoTerminal = [
+                "> EXEC BOOT_SEQUENCE.SH",
+                "> RivCo Unified OS v2.4.0",
+                "> Checking RAM... 64KB OK",
+                "> Mounting Holo-Drive...",
+                "> Biosensors & Radar... ONLINE",
+                "> [ SYSTEM READY ]"
+            ].join('\n');
+
+            const duracionAudioMs = 3000; // 3 segundos exactos de tu audio de teclado
+            const totalCaracteres = textoTerminal.length;
+            const inicioMs = performance.now();
+
+            function animarEscritura(ahoraMs) {
+                const transcurrido = ahoraMs - inicioMs;
+                const progreso = Math.min(1, transcurrido / duracionAudioMs);
+                const charsVisibles = Math.floor(progreso * totalCaracteres);
+
+                if (splashTypewriterBox) {
+                    splashTypewriterBox.textContent = textoTerminal.slice(0, charsVisibles) + ' █';
                 }
-            }, 600);
+
+                if (progreso < 1) {
+                    requestAnimationFrame(animarEscritura);
+                } else {
+                    setTimeout(() => {
+                        splashScreen.style.transition = 'opacity 0.35s ease';
+                        splashScreen.style.opacity = '0';
+                        setTimeout(() => splashScreen.remove(), 360);
+                    }, 300);
+                }
+            }
+
+            requestAnimationFrame(animarEscritura);
         });
     }
 
@@ -155,9 +165,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (itemMision) {
             const textoClic = e.target.textContent.trim().toUpperCase();
             if (textoClic === '[X]' || textoClic === 'X' || e.target.classList.contains('eliminar')) {
-                window.reproducirSonido('ui_menu_cancel.wav');
+                window.reproducirSonido('menu_cancel.wav');
             } else {
-                window.reproducirSonido('ui_menu_ok.wav');
+                window.reproducirSonido('menu_ok.wav');
             }
             return;
         }
@@ -168,28 +178,28 @@ document.addEventListener('DOMContentLoaded', () => {
         const textoBtn = btn.textContent.trim().toUpperCase();
 
         if (btn.classList.contains('nav-btn')) {
-            window.reproducirSonido('ui_pipboy_select.wav');
+            window.reproducirSonido('menu_select.wav');
         } 
         else if (btn.id === 'btn-next' || btn.id === 'btn-prev') {
-            window.reproducirSonido('ui_pipboy_tuner.wav');
+            window.reproducirSonido('tuner.wav');
         } 
         else if (btn.id === 'btn-cargar-cinta' || btn.id === 'btn-shuffle') {
-            window.reproducirSonido('ui_pipboy_tab.wav');
+            window.reproducirSonido('menu_tab.wav');
         } 
         else if (btn.id === 'btn-play' || btn.id === 'btn-play-radio') {
-            window.reproducirSonido('ui_pipboy_holotape_start.wav');
+            window.reproducirSonido('holotape_start.wav');
         } 
         else if (btn.id === 'btn-pause' || btn.id === 'btn-pause-radio') {
-            window.reproducirSonido('ui_pipboy_holotape_stop.wav');
+            window.reproducirSonido('holotape_stop.wav');
         } 
         else if (btn.id === 'btn-buscar-satelite') {
-            window.reproducirSonido('ui_radio_signalfound.wav');
+            window.reproducirSonido('signal_found.wav', 0.55);
         } 
         else if (btn.classList.contains('btn-cancel') || btn.classList.contains('btn-eliminar') || textoBtn === 'X' || textoBtn === '[X]') {
-            window.reproducirSonido('ui_menu_cancel.wav');
+            window.reproducirSonido('menu_cancel.wav');
         } 
         else {
-            window.reproducirSonido('ui_menu_ok.wav');
+            window.reproducirSonido('menu_ok.wav');
         }
     });
 
@@ -210,12 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // ==========================================
-    // 5. INICIALIZACIÓN DEL SERVICE WORKER
-    // ==========================================
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('Uplink establecido (Service Worker Registrado).', reg))
-            .catch(err => console.error('Fallo en el Uplink.', err));
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
     }
 });

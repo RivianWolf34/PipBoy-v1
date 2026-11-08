@@ -1,5 +1,5 @@
 /* =====================================================
-   MAP.JS — MOTOR OSM HÍBRIDO (RED + CACHÉ + PAQUETES .ZIP OSM OFFLINE)
+   MAP.JS — MOTOR OSM HÍBRIDO + NAVEGACIÓN TÁCTICA ESTABILIZADA
 ===================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -11,6 +11,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const panelWaypoints = document.getElementById('panel-waypoints');
     const panelTrail = document.getElementById('panel-trail');
 
+    const btnRadarZoomIn = document.getElementById('btn-radar-zoom-in');
+    const btnRadarZoomOut = document.getElementById('btn-radar-zoom-out');
     const btnLoadOfflineMap = document.getElementById('btn-load-offline-map');
     const btnClearOfflineMap = document.getElementById('btn-clear-offline-map');
     const inputOfflineMap = document.getElementById('input-offline-map');
@@ -23,6 +25,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const displayHora = document.getElementById('map-hora-display');
     const displayUbicacion = document.getElementById('map-ubicacion-display');
 
+    const btnFollowMe = document.getElementById('btn-map-follow-me');
+    const btnToggleSearch = document.getElementById('btn-toggle-map-search');
+    const btnCloseSearch = document.getElementById('btn-close-map-search');
+    const searchBoxContainer = document.getElementById('map-online-search-box');
+    const inputMapSearch = document.getElementById('input-map-search');
+    const btnMapSearch = document.getElementById('btn-map-search');
+    const btnMapClearRoute = document.getElementById('btn-map-clear-route');
+    const listMapResults = document.getElementById('map-search-results');
+    const routeTelemetryBar = document.getElementById('map-route-telemetry');
+    const routeTargetName = document.getElementById('map-route-target-name');
+    const routeStatsText = document.getElementById('map-route-stats');
+
     let leafletMap = null;
     let tileLayerOSM = null;
     let tieneMapaDescargado = false;
@@ -30,16 +44,148 @@ document.addEventListener('DOMContentLoaded', () => {
     let nombreArchivoMapa = localStorage.getItem('pip_downloaded_map_name') || '';
 
     let userMarker = null;
-    let centradoInicial = false;
+    let seguirUsuarioEnMapa = true;
+    let moviendoCamaraPorCodigo = false;
     let ultimaLatLocalidad = null;
     let ultimaLonLocalidad = null;
+    let ultimaLatCamara = null;
+    let ultimaLonCamara = null;
+    let resizeTimeout = null;
 
-    const savedLat = parseFloat(localStorage.getItem('pip_last_real_lat')) || 19.0414;
-    const savedLon = parseFloat(localStorage.getItem('pip_last_real_lon')) || -98.2063;
+    let rutaPolyline = null;
+    let destinoMarker = null;
+    let destinoActivoCoords = null;
+    let buscadorAbierto = false;
+
+    let currentLat = parseFloat(localStorage.getItem('pip_last_real_lat')) || 19.0414;
+    let currentLon = parseFloat(localStorage.getItem('pip_last_real_lon')) || -98.2063;
+
+    function calcularDistanciaKM(lat1, lon1, lat2, lon2) {
+        const R = 6371;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                  Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+    }
+
+    function formatearDistancia(km) {
+        return km < 1 ? `${Math.round(km * 1000)} M` : `${km.toFixed(1)} KM`;
+    }
+
+    function refrescarTamanoMapaSuave() {
+        if (!leafletMap) return;
+        if (resizeTimeout) clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            if (leafletMap) leafletMap.invalidateSize({ pan: false, animate: false });
+        }, 180);
+    }
+
+    // ==========================================
+    // 0. MODAL TÁCTICO DE CONFIRMACIÓN
+    // ==========================================
+    function mostrarConfirmacionMapa(titulo, subtitulo, alConfirmar) {
+        let modal = document.getElementById('map-confirm-modal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'map-confirm-modal';
+            modal.style.cssText = 'position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,10,0,0.86); z-index:9999; display:flex; justify-content:center; align-items:center;';
+            document.body.appendChild(modal);
+        }
+
+        modal.innerHTML = `
+            <div style="background:rgba(5,20,5,0.98); border:2px solid #ffcc00; box-shadow:0 0 24px rgba(255,204,0,0.45); padding:16px 22px; text-align:center; min-width:270px; max-width:88vw;">
+                <p style="color:#ffcc00; font-size:1.15rem; font-weight:bold; margin-bottom:8px;">[ ${titulo} ]</p>
+                <p style="color:var(--verde-pipboy); font-size:0.85rem; margin-bottom:14px;">${subtitulo}</p>
+                <div style="display:flex; justify-content:center; gap:14px;">
+                    <button id="map-modal-confirm" class="boton-pipboy btn-amber-border" style="padding:6px 16px; margin:0;">[ CONFIRM ]</button>
+                    <button id="map-modal-cancel" class="boton-pipboy" style="padding:6px 16px; margin:0;">[ CANCEL ]</button>
+                </div>
+            </div>
+        `;
+
+        modal.querySelector('#map-modal-confirm').addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (window.reproducirSonido) window.reproducirSonido('menu_ok.wav');
+            modal.remove();
+            alConfirmar();
+        });
+
+        modal.querySelector('#map-modal-cancel').addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (window.reproducirSonido) window.reproducirSonido('menu_cancel.wav');
+            modal.remove();
+        });
+    }
+
+    // ==========================================
+    // 1. CONTROLES LATERALES DE RADAR ([+], [-], [⌖ ME], [🔍])
+    // ==========================================
+    if (btnRadarZoomIn) {
+        btnRadarZoomIn.addEventListener('click', () => {
+            if (window.reproducirSonido) window.reproducirSonido('tuner.wav');
+            if (leafletMap) leafletMap.zoomIn();
+        });
+    }
+
+    if (btnRadarZoomOut) {
+        btnRadarZoomOut.addEventListener('click', () => {
+            if (window.reproducirSonido) window.reproducirSonido('tuner.wav');
+            if (leafletMap) leafletMap.zoomOut();
+        });
+    }
+
+    function actualizarEstadoFollowUI(activo) {
+        seguirUsuarioEnMapa = activo;
+        if (btnFollowMe) btnFollowMe.classList.toggle('activo', activo);
+    }
+
+    if (btnFollowMe) {
+        btnFollowMe.addEventListener('click', () => {
+            if (window.reproducirSonido) window.reproducirSonido('menu_select.wav');
+            actualizarEstadoFollowUI(true);
+            if (leafletMap) {
+                moviendoCamaraPorCodigo = true;
+                leafletMap.setView([currentLat, currentLon], Math.max(leafletMap.getZoom(), 15), { animate: false });
+                ultimaLatCamara = currentLat;
+                ultimaLonCamara = currentLon;
+                setTimeout(() => { moviendoCamaraPorCodigo = false; }, 100);
+            }
+        });
+    }
+
+    function alternarPanelBuscador(forzarEstado = null) {
+        if (!navigator.onLine) return;
+        buscadorAbierto = (forzarEstado !== null) ? forzarEstado : !buscadorAbierto;
+
+        if (searchBoxContainer) {
+            searchBoxContainer.style.display = buscadorAbierto ? 'flex' : 'none';
+        }
+        if (btnToggleSearch) {
+            btnToggleSearch.classList.toggle('activo', buscadorAbierto);
+        }
+        refrescarTamanoMapaSuave();
+    }
+
+    if (btnToggleSearch) {
+        btnToggleSearch.addEventListener('click', () => {
+            if (window.reproducirSonido) window.reproducirSonido('menu_tab.wav');
+            alternarPanelBuscador();
+        });
+    }
+
+    if (btnCloseSearch) {
+        btnCloseSearch.addEventListener('click', () => {
+            if (window.reproducirSonido) window.reproducirSonido('menu_cancel.wav');
+            alternarPanelBuscador(false);
+            if (listMapResults) listMapResults.style.display = 'none';
+        });
+    }
 
     function activarSubPestanaMap(pestana) {
-        if (window.reproducirSonido) window.reproducirSonido('ui_pipboy_select.wav');
-        if (panelLocalMap) panelLocalMap.style.display = (pestana === 'local-map') ? 'block' : 'none';
+        if (window.reproducirSonido) window.reproducirSonido('menu_select.wav');
+        if (panelLocalMap) panelLocalMap.style.display = (pestana === 'local-map') ? 'flex' : 'none';
         if (panelWaypoints) panelWaypoints.style.display = (pestana === 'waypoints') ? 'flex' : 'none';
         if (panelTrail) panelTrail.style.display = (pestana === 'trail') ? 'flex' : 'none';
 
@@ -48,10 +194,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (tabTrail) tabTrail.classList.toggle('activo', pestana === 'trail');
 
         if (pestana === 'local-map') {
-            if (!leafletMap) inicializarLeaflet(savedLat, savedLon);
-            setTimeout(() => {
-                if (leafletMap) leafletMap.invalidateSize();
-            }, 50);
+            if (!leafletMap) inicializarLeaflet(currentLat, currentLon);
+            refrescarTamanoMapaSuave();
         }
         if (pestana === 'trail' && typeof window.dibujarLienzoTrail === 'function') {
             setTimeout(window.dibujarLienzoTrail, 40);
@@ -66,12 +210,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!displayHora) return;
         const ahora = new Date();
         displayHora.textContent = `${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}:${String(ahora.getSeconds()).padStart(2, '0')}`;
+
+        // Sincronizar suavemente con el GPS global de stats.js sin crear otro watchPosition duplicado
+        if (typeof window.pipCurrentLat === 'number' && typeof window.pipCurrentLon === 'number') {
+            procesarUbicacionReal(window.pipCurrentLat, window.pipCurrentLon);
+        }
     }
     setInterval(actualizarRelojMapa, 1000);
     actualizarRelojMapa();
 
     // ==========================================
-    // 1. BASE DE DATOS INDEXEDDB PARA TILES DE OPENSTREETMAP ({z}/{x}/{y}.png)
+    // 2. BASE DE DATOS INDEXEDDB Y PAQUETES .ZIP OFFLINE
     // ==========================================
     const DB_NAME = 'PipBoyOSMTilesDB';
     const STORE_TILES = 'osm_tiles';
@@ -123,9 +272,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ==========================================
-    // 2. DESCOMPRESOR NATIVO DE ARCHIVOS .ZIP DE OPENSTREETMAP
-    // ==========================================
     async function descomprimirBufferDeflate(uint8Compressed) {
         const ds = new DecompressionStream('deflate-raw');
         const writer = ds.writable.getWriter();
@@ -141,7 +287,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const view = new DataView(arrayBuffer);
         const bytes = new Uint8Array(arrayBuffer);
 
-        // Buscar firma End of Central Directory (0x06054b50)
         let eocdOffset = -1;
         for (let i = bytes.length - 22; i >= Math.max(0, bytes.length - 65557); i--) {
             if (view.getUint32(i, true) === 0x06054b50) {
@@ -170,7 +315,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const fileName = decoder.decode(bytes.subarray(cdOffset + 46, cdOffset + 46 + fileNameLen));
             cdOffset += 46 + fileNameLen + extraLen + commentLen;
 
-            // Detectar patrón {z}/{x}/{y}.png o .jpg dentro del ZIP
             const match = fileName.match(/(\d+)\/(\d+)\/(\d+)\.(png|jpg|jpeg|webp)$/i);
             if (match && compSize > 0) {
                 const keyZXY = `${match[1]}/${match[2]}/${match[3]}`;
@@ -221,7 +365,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             const pct = Math.min(99, Math.round(((i + lote.length) / entradasTiles.length) * 100));
-            if (btnLoadOfflineMap) btnLoadOfflineMap.textContent = `[LOADING ${pct}%]`;
+            if (btnLoadOfflineMap) btnLoadOfflineMap.textContent = `${pct}%`;
         }
 
         totalTilesGuardados += entradasTiles.length;
@@ -235,14 +379,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (totalTilesGuardados > 0) {
             tieneMapaDescargado = true;
             if (btnLoadOfflineMap) {
-                btnLoadOfflineMap.textContent = `[🗺 OSM: ${totalTilesGuardados} TILES]`;
+                btnLoadOfflineMap.textContent = '[OSM✓]';
                 btnLoadOfflineMap.classList.add('activo');
             }
-            if (btnClearOfflineMap) btnClearOfflineMap.style.display = 'inline-block';
+            if (btnClearOfflineMap) btnClearOfflineMap.style.display = 'block';
         } else {
             tieneMapaDescargado = false;
             if (btnLoadOfflineMap) {
-                btnLoadOfflineMap.textContent = '[🗺 LOAD MAP]';
+                btnLoadOfflineMap.textContent = '[MAP]';
                 btnLoadOfflineMap.classList.remove('activo');
             }
             if (btnClearOfflineMap) btnClearOfflineMap.style.display = 'none';
@@ -251,7 +395,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnLoadOfflineMap && inputOfflineMap) {
         btnLoadOfflineMap.addEventListener('click', () => {
-            if (window.reproducirSonido) window.reproducirSonido('ui_pipboy_tab.wav');
+            if (window.reproducirSonido) window.reproducirSonido('menu_tab.wav');
             inputOfflineMap.value = '';
             inputOfflineMap.click();
         });
@@ -261,14 +405,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!file) return;
 
             try {
-                if (btnLoadOfflineMap) btnLoadOfflineMap.textContent = '[READING...]';
+                if (btnLoadOfflineMap) btnLoadOfflineMap.textContent = '[...]';
                 await importarPaqueteZipOSM(file);
                 actualizarBotonesMapaDescargadoUI();
                 if (tileLayerOSM) tileLayerOSM.redraw();
                 gestionarEstadoRed();
-                if (window.reproducirSonido) window.reproducirSonido('ui_menu_ok.wav');
+                if (window.reproducirSonido) window.reproducirSonido('menu_ok.wav');
             } catch (err) {
-                console.error("Error al cargar paquete de mapa:", err);
                 alert("SELECCIONA UN ARCHIVO .ZIP CON CUADROS DE OPENSTREETMAP ({Z}/{X}/{Y}.PNG).");
                 actualizarBotonesMapaDescargadoUI();
             }
@@ -277,7 +420,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnClearOfflineMap) {
         btnClearOfflineMap.addEventListener('click', async () => {
-            if (window.reproducirSonido) window.reproducirSonido('ui_menu_cancel.wav');
+            if (window.reproducirSonido) window.reproducirSonido('menu_cancel.wav');
             await borrarTodosLosTilesDB();
             actualizarBotonesMapaDescargadoUI();
             if (tileLayerOSM) tileLayerOSM.redraw();
@@ -286,7 +429,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 3. CAPA LEAFLET PERSONALIZADA (LEE PRIMERO EL MAPA DESCARGADO Y LUEGO OSM)
+    // 3. CAPA LEAFLET HÍBRIDA Y SEGUIMIENTO SUAVE
     // ==========================================
     function crearCapaOSMHibrida() {
         const CapaHibrida = L.TileLayer.extend({
@@ -301,7 +444,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const keyZXY = `${coords.z}/${coords.x}/${coords.y}`;
                 const urlOnline = this.getTileUrl(coords);
 
-                // 1. Buscar primero en el mapa OSM descargado en el teléfono (IndexedDB)
                 if (totalTilesGuardados > 0) {
                     obtenerTileDesdeDB(keyZXY).then(blobGuardado => {
                         if (blobGuardado) {
@@ -322,8 +464,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         return new CapaHibrida('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
-            keepBuffer: 6,
-            updateWhenIdle: false,
+            keepBuffer: 4,
+            updateWhenIdle: true,
             updateWhenZooming: false
         });
     }
@@ -332,9 +474,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (leafletMap || !contenedorMapa || typeof L === 'undefined') return;
 
         leafletMap = L.map('leaflet-map-container', {
-            zoomControl: true,
-            attributionControl: false
-        }).setView([latInicial, lonInicial], 15);
+            zoomControl: false,
+            attributionControl: false,
+            fadeAnimation: false,
+            zoomAnimation: true
+        }).setView([latInicial, lonInicial], 16);
+
+        ultimaLatCamara = latInicial;
+        ultimaLonCamara = lonInicial;
 
         tileLayerOSM = crearCapaOSMHibrida().addTo(leafletMap);
 
@@ -346,39 +493,310 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         userMarker = L.marker([latInicial, lonInicial], { icon: pipIcon }).addTo(leafletMap);
-    }
 
-    if (panelLocalMap && typeof ResizeObserver !== 'undefined') {
-        const ro = new ResizeObserver((entries) => {
-            for (const entry of entries) {
-                if (entry.contentRect.width > 0 && entry.contentRect.height > 0) {
-                    if (!leafletMap) inicializarLeaflet(savedLat, savedLon);
-                    else leafletMap.invalidateSize();
-                }
+        // Si el usuario mueve el mapa con 1 o 2 dedos, se suelta [⌖ ME]
+        leafletMap.on('dragstart', () => {
+            if (!moviendoCamaraPorCodigo) {
+                actualizarEstadoFollowUI(false);
             }
         });
-        ro.observe(panelLocalMap);
+
+        // Tap con 1 dedo en el mapa para fijar destino único respetando calles
+        leafletMap.on('click', (e) => {
+            if (!navigator.onLine) return;
+            const tapLat = e.latlng.lat;
+            const tapLon = e.latlng.lng;
+            const distKM = calcularDistanciaKM(currentLat, currentLon, tapLat, tapLon);
+
+            if (window.reproducirSonido) window.reproducirSonido('menu_select.wav');
+
+            const mensajeSub = destinoActivoCoords
+                ? `Replace current route with new point (${formatearDistancia(distKM)} away)?`
+                : `Trace street route to selected point (${formatearDistancia(distKM)} away)?`;
+
+            mostrarConfirmacionMapa('SET ROUTE TARGET?', mensajeSub, async () => {
+                let etiquetaPunto = `POINT (${tapLat.toFixed(4)}, ${tapLon.toFixed(4)})`;
+                try {
+                    const resRev = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${tapLat}&lon=${tapLon}&zoom=18`, {
+                        headers: { 'Accept-Language': 'es' }
+                    });
+                    const dataRev = await resRev.json();
+                    if (dataRev && dataRev.address) {
+                        const calle = dataRev.address.road || dataRev.address.pedestrian || dataRev.address.suburb || dataRev.address.neighbourhood;
+                        if (calle) etiquetaPunto = calle.toUpperCase();
+                    }
+                } catch (err) {}
+
+                trazarRutaHaciaDestino(tapLat, tapLon, etiquetaPunto);
+            });
+        });
     }
 
     document.querySelectorAll('.nav-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             if (btn.getAttribute('data-target') === 'map-modulo') {
                 setTimeout(() => {
-                    if (!leafletMap) inicializarLeaflet(savedLat, savedLon);
-                    if (leafletMap) leafletMap.invalidateSize();
-                }, 60);
+                    if (!leafletMap) inicializarLeaflet(currentLat, currentLon);
+                    refrescarTamanoMapaSuave();
+                }, 80);
             }
         });
     });
 
+    window.addEventListener('resize', refrescarTamanoMapaSuave);
+
     // ==========================================
-    // 4. ESTADOS DE RED: ONLINE / DOWNLOADED MAP / OFFLINE CACHE MODE
+    // 4. BUSCADOR Y ENRUTADOR OSRM (SENTIDO DE CALLES)
+    // ==========================================
+    function limpiarRutaActivaSinPreguntar() {
+        if (rutaPolyline && leafletMap) {
+            leafletMap.removeLayer(rutaPolyline);
+            rutaPolyline = null;
+        }
+        if (destinoMarker && leafletMap) {
+            leafletMap.removeLayer(destinoMarker);
+            destinoMarker = null;
+        }
+        destinoActivoCoords = null;
+        if (routeTelemetryBar) routeTelemetryBar.style.display = 'none';
+        if (btnMapClearRoute) btnMapClearRoute.style.display = 'none';
+        if (listMapResults) listMapResults.style.display = 'none';
+        refrescarTamanoMapaSuave();
+    }
+
+    function solicitarConfirmacionBorrarRuta() {
+        if (!destinoActivoCoords) return;
+        if (window.reproducirSonido) window.reproducirSonido('menu_select.wav');
+        mostrarConfirmacionMapa(
+            'CLEAR ACTIVE ROUTE?',
+            `Remove target "${destinoActivoCoords.nombre}" and clear path?`,
+            () => {
+                limpiarRutaActivaSinPreguntar();
+                actualizarEstadoFollowUI(true);
+                if (leafletMap) {
+                    moviendoCamaraPorCodigo = true;
+                    leafletMap.setView([currentLat, currentLon], 16, { animate: false });
+                    setTimeout(() => { moviendoCamaraPorCodigo = false; }, 100);
+                }
+            }
+        );
+    }
+
+    if (btnMapClearRoute) {
+        btnMapClearRoute.addEventListener('click', solicitarConfirmacionBorrarRuta);
+    }
+
+    async function trazarRutaHaciaDestino(destLat, destLon, nombreLugar) {
+        if (!leafletMap) inicializarLeaflet(currentLat, currentLon);
+        limpiarRutaActivaSinPreguntar();
+
+        alternarPanelBuscador(false);
+        destinoActivoCoords = { lat: destLat, lon: destLon, nombre: nombreLugar };
+
+        const destIcon = L.divIcon({
+            className: 'pip-map-dest-icon',
+            html: `<div style="color:#ffcc00; font-size:20px; font-weight:bold; text-shadow:0 0 8px #ffcc00; transform:translate(-6px, -10px);">◈</div>`,
+            iconSize: [22, 22],
+            iconAnchor: [11, 11]
+        });
+
+        destinoMarker = L.marker([destLat, destLon], { icon: destIcon }).addTo(leafletMap);
+        destinoMarker.on('click', (e) => {
+            L.DomEvent.stopPropagation(e);
+            solicitarConfirmacionBorrarRuta();
+        });
+
+        if (routeTelemetryBar) {
+            routeTelemetryBar.style.display = 'flex';
+            if (routeTargetName) routeTargetName.textContent = `> TARGET: ${nombreLugar}`;
+            if (routeStatsText) routeStatsText.textContent = `ROUTING...`;
+        }
+        if (btnMapClearRoute) btnMapClearRoute.style.display = 'block';
+        refrescarTamanoMapaSuave();
+
+        try {
+            const urlOSRM = `https://router.project-osrm.org/route/v1/driving/${currentLon},${currentLat};${destLon},${destLat}?overview=full&geometries=geojson`;
+            const res = await fetch(urlOSRM);
+            const data = await res.json();
+
+            if (data && data.routes && data.routes.length > 0) {
+                const route = data.routes[0];
+                const coordsLatLng = route.geometry.coordinates.map(c => [c[1], c[0]]);
+
+                rutaPolyline = L.polyline(coordsLatLng, {
+                    color: '#ffcc00',
+                    weight: 4,
+                    opacity: 0.92,
+                    dashArray: '10, 6'
+                }).addTo(leafletMap);
+
+                actualizarEstadoFollowUI(false);
+                moviendoCamaraPorCodigo = true;
+                leafletMap.fitBounds(rutaPolyline.getBounds(), { padding: [28, 28], animate: false });
+                setTimeout(() => { moviendoCamaraPorCodigo = false; }, 150);
+
+                const distKM = route.distance / 1000;
+                const mins = Math.max(1, Math.round(route.duration / 60));
+                if (routeStatsText) {
+                    routeStatsText.textContent = `${formatearDistancia(distKM)} // ~${mins} MIN`;
+                }
+                if (window.reproducirSonido) window.reproducirSonido('signal_found.wav', 0.55);
+                return;
+            }
+        } catch (err) {}
+
+        rutaPolyline = L.polyline([[currentLat, currentLon], [destLat, destLon]], {
+            color: '#ffcc00',
+            weight: 3,
+            dashArray: '6, 6'
+        }).addTo(leafletMap);
+
+        actualizarEstadoFollowUI(false);
+        moviendoCamaraPorCodigo = true;
+        leafletMap.fitBounds(rutaPolyline.getBounds(), { padding: [28, 28], animate: false });
+        setTimeout(() => { moviendoCamaraPorCodigo = false; }, 150);
+
+        const distDirecta = calcularDistanciaKM(currentLat, currentLon, destLat, destLon);
+        if (routeStatsText) routeStatsText.textContent = `${formatearDistancia(distDirecta)} [DIRECT]`;
+    }
+
+    async function consultarNominatim(textoQuery) {
+        const delta = 0.65;
+        const viewbox = `${currentLon - delta},${currentLat + delta},${currentLon + delta},${currentLat - delta}`;
+        const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=8&countrycodes=mx&q=${encodeURIComponent(textoQuery)}&viewbox=${viewbox}&bounded=0`;
+        const res = await fetch(url, { headers: { 'Accept-Language': 'es' } });
+        const datos = await res.json();
+        if (!Array.isArray(datos)) return [];
+        return datos.map(item => ({
+            lat: parseFloat(item.lat),
+            lon: parseFloat(item.lon),
+            nombre: (item.display_name || 'UNKNOWN').split(',').slice(0, 3).join(',').trim().toUpperCase()
+        }));
+    }
+
+    async function consultarPhotonOSM(textoQuery) {
+        try {
+            const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(textoQuery)}&lat=${currentLat}&lon=${currentLon}&limit=8`;
+            const res = await fetch(url);
+            const data = await res.json();
+            if (!data || !Array.isArray(data.features)) return [];
+            return data.features.map(f => {
+                const p = f.properties || {};
+                const partes = [p.name, p.street, p.district || p.suburb, p.city || p.state].filter(Boolean);
+                return {
+                    lat: f.geometry.coordinates[1],
+                    lon: f.geometry.coordinates[0],
+                    nombre: (partes.slice(0, 3).join(', ') || 'LOCATION').toUpperCase()
+                };
+            });
+        } catch (e) {
+            return [];
+        }
+    }
+
+    async function buscarUbicacionesOnline() {
+        if (!navigator.onLine) return;
+        const queryOriginal = inputMapSearch ? inputMapSearch.value.trim() : '';
+        if (!queryOriginal || !listMapResults) return;
+
+        if (window.reproducirSonido) window.reproducirSonido('menu_select.wav');
+        if (inputMapSearch) inputMapSearch.blur(); // Cerrar teclado móvil para evitar saltos de pantalla
+        listMapResults.style.display = 'block';
+        listMapResults.innerHTML = `<li style="padding: 6px 8px; font-size: 0.7rem; color: var(--verde-pipboy);">> SCANNING "${queryOriginal.toUpperCase()}"...</li>`;
+
+        try {
+            const queryNormalizada = queryOriginal.replace(/periplaza/gi, 'peri plaza');
+
+            const [resNom1, resPhoton1] = await Promise.all([
+                consultarNominatim(queryNormalizada),
+                consultarPhotonOSM(queryNormalizada)
+            ]);
+
+            let combinados = [...resNom1, ...resPhoton1];
+
+            const querySinNumeros = queryNormalizada.replace(/#\s*\d+[a-zA-Z]?|\b\d{2,6}\b/g, ' ').replace(/\s+/g, ' ').trim();
+            if (combinados.length === 0 && querySinNumeros.length >= 4 && querySinNumeros !== queryNormalizada) {
+                const [resNomSinNum, resPhotonSinNum] = await Promise.all([
+                    consultarNominatim(querySinNumeros),
+                    consultarPhotonOSM(querySinNumeros)
+                ]);
+                combinados = [...resNomSinNum, ...resPhotonSinNum].map(r => ({
+                    ...r,
+                    nombre: `${r.nombre} [STREET]`
+                }));
+            }
+
+            if (combinados.length === 0) {
+                listMapResults.innerHTML = `<li style="padding: 6px 8px; font-size: 0.7rem; color: #ffcc00;">> NO MATCH FOUND. TRY "STREET, COLONIA, PUEBLA" OR TAP MAP.</li>`;
+                return;
+            }
+
+            const unicos = [];
+            combinados.forEach(item => {
+                if (isNaN(item.lat) || isNaN(item.lon)) return;
+                const yaExiste = unicos.some(u => calcularDistanciaKM(u.lat, u.lon, item.lat, item.lon) < 0.08);
+                if (!yaExiste) {
+                    unicos.push({
+                        ...item,
+                        distKM: calcularDistanciaKM(currentLat, currentLon, item.lat, item.lon)
+                    });
+                }
+            });
+
+            unicos.sort((a, b) => a.distKM - b.distKM);
+
+            listMapResults.innerHTML = '';
+            unicos.slice(0, 8).forEach(item => {
+                const li = document.createElement('li');
+                li.style.cssText = 'padding: 6px 8px; font-size: 0.7rem; border-bottom: 1px dotted var(--verde-oscuro); cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 8px;';
+                li.innerHTML = `
+                    <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;">> ${item.nombre}</span>
+                    <span style="color: #ffcc00; font-weight: bold; flex-shrink: 0;">[ ${formatearDistancia(item.distKM)} ]</span>
+                `;
+
+                li.addEventListener('click', () => {
+                    const nombreCorto = item.nombre.split(',')[0];
+                    mostrarConfirmacionMapa(
+                        'SET ROUTE TARGET?',
+                        `Trace route to ${nombreCorto} (${formatearDistancia(item.distKM)})?`,
+                        () => {
+                            listMapResults.style.display = 'none';
+                            inputMapSearch.value = nombreCorto;
+                            trazarRutaHaciaDestino(item.lat, item.lon, nombreCorto);
+                        }
+                    );
+                });
+
+                listMapResults.appendChild(li);
+            });
+
+        } catch (err) {
+            listMapResults.innerHTML = `<li style="padding: 6px 8px; font-size: 0.7rem; color: #ffcc00;">> SATELLITE SEARCH ERROR. CHECK CONNECTION.</li>`;
+        }
+    }
+
+    if (btnMapSearch) {
+        btnMapSearch.addEventListener('click', buscarUbicacionesOnline);
+    }
+    if (inputMapSearch) {
+        inputMapSearch.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                buscarUbicacionesOnline();
+            }
+        });
+    }
+
+    // ==========================================
+    // 5. ESTADOS DE RED Y ACTUALIZACIÓN GPS ESTABLE
     // ==========================================
     function gestionarEstadoRed() {
         if (!capaOffline) return;
         const sectorGuardado = localStorage.getItem('pip_last_sector_name') || "MEXICO SECTOR";
 
         if (!navigator.onLine) {
+            if (searchBoxContainer) searchBoxContainer.style.display = 'none';
+            if (btnToggleSearch) btnToggleSearch.style.display = 'none';
             capaOffline.style.display = 'flex';
             capaOffline.classList.add('alerta-discreta');
 
@@ -392,6 +810,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (displayUbicacion) displayUbicacion.textContent = `${sectorGuardado} [CACHE]`;
             }
         } else {
+            if (btnToggleSearch) btnToggleSearch.style.display = 'block';
             capaOffline.style.display = 'none';
             capaOffline.classList.remove('alerta-discreta');
         }
@@ -424,6 +843,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function procesarUbicacionReal(lat, lon) {
+        currentLat = lat;
+        currentLon = lon;
         localStorage.setItem('pip_last_real_lat', lat.toString());
         localStorage.setItem('pip_last_real_lon', lon.toString());
 
@@ -431,10 +852,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (leafletMap) {
             if (userMarker) userMarker.setLatLng([lat, lon]);
-            if (!centradoInicial) {
-                leafletMap.setView([lat, lon], 16);
-                centradoInicial = true;
+
+            // Solo mover la cámara si [⌖ ME] está activo y nos movimos más de 3 metros (evita vibración/parpadeo)
+            if (seguirUsuarioEnMapa && !buscadorAbierto) {
+                const distCam = (ultimaLatCamara === null) ? 999 : calcularDistanciaKM(ultimaLatCamara, ultimaLonCamara, lat, lon);
+                if (distCam > 0.003) {
+                    ultimaLatCamara = lat;
+                    ultimaLonCamara = lon;
+                    moviendoCamaraPorCodigo = true;
+                    leafletMap.setView([lat, lon], leafletMap.getZoom(), { animate: false });
+                    moviendoCamaraPorCodigo = false;
+                }
             }
+        }
+
+        if (destinoActivoCoords && routeTargetName) {
+            const distRestante = calcularDistanciaKM(lat, lon, destinoActivoCoords.lat, destinoActivoCoords.lon);
+            routeTargetName.textContent = `> TARGET: ${destinoActivoCoords.nombre} (${formatearDistancia(distRestante)} LEFT)`;
         }
 
         gestionarEstadoRed();
@@ -446,51 +880,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function errorUbicacion() {
-        if (window.pipCurrentLat !== null && window.pipCurrentLon !== null) {
-            procesarUbicacionReal(window.pipCurrentLat, window.pipCurrentLon);
-        } else {
-            if (displayGps) displayGps.textContent = "LAT: NO GPS FIX // LON: NO GPS FIX";
-            gestionarEstadoRed();
-        }
-    }
-
     window.addEventListener('online', gestionarEstadoRed);
     window.addEventListener('offline', gestionarEstadoRed);
 
-    const isNativeApp = !!(window.Capacitor && (
-        (typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform()) ||
-        window.Capacitor.isNative
-    ));
-    const Plugins = (window.Capacitor && window.Capacitor.Plugins) ? window.Capacitor.Plugins : {};
-    const { Geolocation } = Plugins;
-
-    async function iniciarMapaGPS() {
-        actualizarBotonesMapaDescargadoUI();
-        gestionarEstadoRed();
-
-        if (isNativeApp && Geolocation) {
-            try {
-                const perm = await Geolocation.checkPermissions();
-                if (perm.location !== 'granted') await Geolocation.requestPermissions();
-                Geolocation.watchPosition(
-                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 2000 },
-                    (pos, err) => {
-                        if (!err && pos && pos.coords) procesarUbicacionReal(pos.coords.latitude, pos.coords.longitude);
-                        else if (err) errorUbicacion();
-                    }
-                );
-                return;
-            } catch (e) {}
-        }
-        if (navigator.geolocation) {
-            navigator.geolocation.watchPosition(
-                (pos) => procesarUbicacionReal(pos.coords.latitude, pos.coords.longitude),
-                errorUbicacion,
-                { enableHighAccuracy: true, maximumAge: 2000, timeout: 10000 }
-            );
-        }
-    }
-
-    iniciarMapaGPS();
+    actualizarBotonesMapaDescargadoUI();
+    gestionarEstadoRed();
 });
