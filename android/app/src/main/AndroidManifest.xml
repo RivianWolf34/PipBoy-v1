@@ -2,23 +2,22 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- ===================================================== -->
-    <!-- PERMISOS DEL SISTEMA Y HARDWARE (DEBEN IR AQUÍ ARRIBA) -->
+    <!-- PERMISOS DEL SISTEMA Y HARDWARE                       -->
     <!-- ===================================================== -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
-    <!-- Permisos para el GPS -->
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-feature android:name="android.hardware.location.gps" />
-    <!-- El giroscopio y brújula no requieren permiso especial aquí, Capacitor Motion lo maneja -->
+    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
 
     <!-- ===================================================== -->
-    <!-- CONFIGURACIÓN DE LA APLICACIÓN -->
+    <!-- CONFIGURACIÓN DE LA APLICACIÓN                        -->
     <!-- ===================================================== -->
     <application
         android:allowBackup="true"
@@ -34,6 +33,7 @@
             android:label="@string/title_activity_main"
             android:theme="@style/AppTheme.NoActionBarLaunch"
             android:launchMode="singleTask"
+            android:screenOrientation="sensorLandscape"
             android:exported="true">
 
             <intent-filter>
@@ -43,6 +43,13 @@
 
         </activity>
 
+        <!-- Servicio en primer plano para mantener el GPS activo con pantalla bloqueada -->
+        <service
+            android:name=".MainActivity$GpsKeepAliveService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="location" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -50,8 +57,9 @@
             android:grantUriPermissions="true">
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/file_paths"></meta-data>
+                android:resource="@xml/file_paths" />
         </provider>
+
     </application>
 
 </manifest>

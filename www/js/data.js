@@ -1,30 +1,19 @@
 /* =====================================================
-   DATA.JS — GESTOR DE MISIONES Y RECORDATORIOS OFFLINE
+   DATA.JS — GESTOR DE MISIONES Y SISTEMA DE ALARMAS EN SUBPESTAÑAS
 ===================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
     
-    // ==========================================
-    // 0. RELOJ INFERIOR Y TELEMETRÍA DE SISTEMA
-    // ==========================================
+    const tabDataQuests = document.getElementById('tab-data-quests');
+    const tabDataAlerts = document.getElementById('tab-data-alerts');
+    const panelDataQuests = document.getElementById('panel-data-quests');
+    const panelDataAlerts = document.getElementById('panel-data-alerts');
+    const dataModeLabel = document.getElementById('data-mode-label');
+
     const displayHoraData = document.getElementById('data-hora-display');
     const contadorStats = document.getElementById('data-stats-count');
+    const contadorAlerts = document.getElementById('data-alerts-count');
 
-    function actualizarRelojData() {
-        if (!displayHoraData) return;
-        const ahora = new Date();
-        const horas = String(ahora.getHours()).padStart(2, '0');
-        const minutos = String(ahora.getMinutes()).padStart(2, '0');
-        const segundos = String(ahora.getSeconds()).padStart(2, '0');
-        displayHoraData.textContent = `${horas}:${minutos}:${segundos}`;
-    }
-    setInterval(actualizarRelojData, 1000);
-    actualizarRelojData();
-
-
-    // ==========================================
-    // 1. GESTOR DE MISIONES (QUEST LOG)
-    // ==========================================
     const inputTarea = document.getElementById('input-tarea');
     const btnAgregarMision = document.getElementById('btn-agregar-mision');
     const listaTareas = document.getElementById('lista-tareas');
@@ -33,12 +22,119 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let misiones = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
     let recordatorios = JSON.parse(localStorage.getItem(STORAGE_RECS_KEY)) || [];
+    let intervaloRepeticionAlarma = null;
 
+    // ==========================================
+    // 0. NAVEGACIÓN ENTRE SUBPESTAÑAS (QUESTS / ALERTS)
+    // ==========================================
+    function activarSubPestanaData(pestana) {
+        if (window.reproducirSonido) window.reproducirSonido('ui_pipboy_select.wav');
+
+        if (panelDataQuests) panelDataQuests.style.display = (pestana === 'quests') ? 'flex' : 'none';
+        if (panelDataAlerts) panelDataAlerts.style.display = (pestana === 'alerts') ? 'flex' : 'none';
+
+        if (tabDataQuests) tabDataQuests.classList.toggle('activo', pestana === 'quests');
+        if (tabDataAlerts) tabDataAlerts.classList.toggle('activo', pestana === 'alerts');
+
+        if (dataModeLabel) {
+            dataModeLabel.textContent = (pestana === 'quests') ? 'SYS.SEC // QUEST-LOG' : 'SYS.SEC // TIME-ALERTS';
+        }
+    }
+
+    if (tabDataQuests) tabDataQuests.addEventListener('click', () => activarSubPestanaData('quests'));
+    if (tabDataAlerts) tabDataAlerts.addEventListener('click', () => activarSubPestanaData('alerts'));
+
+    // ==========================================
+    // 1. RELOJ INFERIOR Y MONITOR DE ALARMAS (1 SEGUNDO)
+    // ==========================================
+    function actualizarRelojData() {
+        const ahoraObj = new Date();
+        if (displayHoraData) {
+            const horas = String(ahoraObj.getHours()).padStart(2, '0');
+            const minutos = String(ahoraObj.getMinutes()).padStart(2, '0');
+            const segundos = String(ahoraObj.getSeconds()).padStart(2, '0');
+            displayHoraData.textContent = `${horas}:${minutos}:${segundos}`;
+        }
+        verificarDisparoAlertas(ahoraObj.getTime());
+    }
+
+    function verificarDisparoAlertas(ahoraMs) {
+        if (recordatorios.length === 0) return;
+        let huboDisparo = false;
+
+        recordatorios.forEach((rec) => {
+            const objetivoMs = new Date(rec.fecha).getTime();
+            if (!isNaN(objetivoMs) && ahoraMs >= objetivoMs && !rec.notificado) {
+                rec.notificado = true;
+                huboDisparo = true;
+                dispararSecuenciaAlarma(rec.texto);
+            }
+        });
+
+        if (huboDisparo) {
+            guardarRecordatorios();
+            renderizarRecordatorios();
+        }
+    }
+
+    function dispararSecuenciaAlarma(textoAlerta) {
+        if (window.AndroidPipBoy && typeof window.AndroidPipBoy.dispararAlarmaNativa === 'function') {
+            window.AndroidPipBoy.dispararAlarmaNativa(textoAlerta);
+        } else if (typeof window.reproducirSonido === 'function') {
+            window.reproducirSonido('ui_leveluptext.wav', 8.0);
+            let pulsos = 1;
+            if (intervaloRepeticionAlarma) clearInterval(intervaloRepeticionAlarma);
+            intervaloRepeticionAlarma = setInterval(() => {
+                if (pulsos >= 3) {
+                    clearInterval(intervaloRepeticionAlarma);
+                    return;
+                }
+                window.reproducirSonido('ui_leveluptext.wav', 8.0);
+                pulsos++;
+            }, 1800);
+        }
+
+        mostrarBannerAlertaActiva(textoAlerta);
+    }
+
+    function mostrarBannerAlertaActiva(textoAlerta) {
+        let banner = document.getElementById('pip-alert-modal');
+        if (!banner) {
+            banner = document.createElement('div');
+            banner.id = 'pip-alert-modal';
+            banner.style.cssText = 'position:fixed; top:12%; left:50%; transform:translateX(-50%); z-index:9998; background:rgba(5,20,5,0.96); border:2px solid #ffcc00; box-shadow:0 0 25px rgba(255,204,0,0.6); padding:14px 20px; display:flex; flex-direction:column; align-items:center; gap:10px; min-width:280px; max-width:90vw; text-align:center;';
+            document.body.appendChild(banner);
+        }
+
+        banner.innerHTML = `
+            <span style="color:#ffcc00; font-size:1.1rem; font-weight:bold; letter-spacing:2px;">[ ! SYS.ALERT TRIGGERED ! ]</span>
+            <span style="color:var(--verde-pipboy); font-size:1rem;">> ${textoAlerta}</span>
+            <button id="btn-ack-alert" class="boton-pipboy" style="margin-top:4px; padding:6px 16px; border-color:#ffcc00; color:#ffcc00;">[ ACKNOWLEDGE ]</button>
+        `;
+
+        banner.querySelector('#btn-ack-alert').addEventListener('click', () => {
+            if (intervaloRepeticionAlarma) clearInterval(intervaloRepeticionAlarma);
+            if (window.AndroidPipBoy && typeof window.AndroidPipBoy.detenerAlarmaNativa === 'function') {
+                window.AndroidPipBoy.detenerAlarmaNativa();
+            } else if (window.AndroidPipBoy && typeof window.AndroidPipBoy.detenerAlarmaNativaJS === 'function') {
+                window.AndroidPipBoy.detenerAlarmaNativaJS();
+            }
+            if (window.reproducirSonido) window.reproducirSonido('ui_menu_ok.wav');
+            banner.remove();
+        });
+    }
+
+    setInterval(actualizarRelojData, 1000);
+    actualizarRelojData();
+
+    // ==========================================
+    // 2. GESTOR DE MISIONES (QUEST LOG)
+    // ==========================================
     function actualizarContadorTelemetria() {
-        if (!contadorStats) return;
         const totalActivas = misiones.filter(m => !m.completada).length;
         const totalRecs = recordatorios.length;
-        contadorStats.textContent = `${totalActivas} QUESTS // ${totalRecs} ALERTS`;
+        if (contadorStats) contadorStats.textContent = `${totalActivas} ACTIVE QUESTS`;
+        if (contadorAlerts) contadorAlerts.textContent = `${totalRecs} SCHEDULED`;
     }
 
     function guardarMisiones() {
@@ -129,11 +225,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    renderizarMisiones();
-
-
     // ==========================================
-    // 2. SISTEMA DE RECORDATORIOS TÁCTICOS
+    // 3. SISTEMA DE RECORDATORIOS TÁCTICOS
     // ==========================================
     const inputRecFecha = document.getElementById('input-rec-fecha');
     const inputRecTexto = document.getElementById('input-rec-texto');
@@ -150,7 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const objetivo = new Date(fechaObjetivo).getTime();
         const diferencia = objetivo - ahora;
 
-        if (diferencia < 0) {
+        if (diferencia <= 0) {
             return { estado: 'vencido', texto: '[ EXPIRADO ]' };
         }
 
@@ -179,6 +272,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const tiempoInfo = calcularTiempoRestante(rec.fecha);
 
             li.className = `quest-item rec-${tiempoInfo.estado}`;
+            if (tiempoInfo.estado === 'vencido') {
+                li.style.color = '#ffcc00';
+            }
 
             const textoSpan = document.createElement('span');
             textoSpan.className = 'quest-texto';
@@ -207,9 +303,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function agregarRecordatorio() {
         if (!inputRecFecha.value || !inputRecTexto.value.trim()) return;
 
+        const fechaSeleccionada = new Date(inputRecFecha.value).getTime();
+        const yaPaso = fechaSeleccionada <= Date.now();
+
         recordatorios.push({
             fecha: inputRecFecha.value,
-            texto: inputRecTexto.value.trim().toUpperCase()
+            texto: inputRecTexto.value.trim().toUpperCase(),
+            notificado: yaPaso
         });
 
         inputRecTexto.value = '';
@@ -231,13 +331,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ==========================================
-    // DISPARO Y ACTUALIZACIÓN DE RECORDATORIOS
-    // ==========================================
-    // Actualiza cada minuto si tienes la pantalla encendida
-    setInterval(renderizarRecordatorios, 60000);
-    
-    // Al despertar el celular, refresca inmediatamente los tiempos de la lista
+    renderizarMisiones();
+    renderizarRecordatorios();
+
+    setInterval(renderizarRecordatorios, 30000);
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
             renderizarRecordatorios();

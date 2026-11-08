@@ -3,14 +3,24 @@
 ===================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
-    
+
+    // Detección temprana de entorno nativo Capacitor
+    const isNativeApp = !!(window.Capacitor && (
+        (typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform()) ||
+        window.Capacitor.isNative
+    ));
+    const CapacitorPlugins = (window.Capacitor && window.Capacitor.Plugins) ? window.Capacitor.Plugins : {};
+    const { Geolocation, Motion } = CapacitorPlugins;
+
     // ==========================================
     // 1. RELOJ GIGANTE + CHIME HORARIO (LEVEL-UP)
     // ==========================================
     const displayReloj = document.getElementById('pip-reloj');
     const displayFecha = document.getElementById('pip-fecha');
     const diasIngles = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
-    let ultimaHoraSonada = -1;
+    let ultimaHoraSonada = localStorage.getItem('pip_last_chime_hour') 
+        ? parseInt(localStorage.getItem('pip_last_chime_hour'), 10) 
+        : new Date().getHours();
 
     function actualizarReloj() {
         if (!displayReloj || !displayFecha) return;
@@ -26,9 +36,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const mes = String(ahora.getMonth() + 1).padStart(2, '0');
         displayFecha.textContent = `${nombreDia} // ${dia}.${mes}.${ahora.getFullYear()}`;
 
-        if (minutos === 0 && segundos === 0 && ultimaHoraSonada !== horas) {
+        // Ventana de 15 segundos por si el reloj salta un segundo con la pantalla apagada
+        if (minutos === 0 && segundos <= 15 && ultimaHoraSonada !== horas) {
             ultimaHoraSonada = horas;
-            if (typeof window.reproducirSonido === 'function') window.reproducirSonido('ui_leveluptext.wav', 6.0);
+            localStorage.setItem('pip_last_chime_hour', String(horas));
+
+            if (window.AndroidPipBoy && typeof window.AndroidPipBoy.reproducirChimeNativo === 'function') {
+                window.AndroidPipBoy.reproducirChimeNativo();
+            } else if (typeof window.reproducirSonido === 'function') {
+                window.reproducirSonido('ui_leveluptext.wav', 6.0);
+            }
         }
     }
     setInterval(actualizarReloj, 1000);
@@ -220,6 +237,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnAutoDec = document.getElementById('btn-cal-auto-dec');
     const btnZeroNorth = document.getElementById('btn-cal-zero-north');
     const btnCalReset = document.getElementById('btn-cal-reset');
+    const btnCalHardReset = document.getElementById('btn-cal-hard-reset');
+
     let wheelPosPx = 0;
 
     function normalizarGrados(val) {
@@ -462,7 +481,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function procesarOrientacionBrazalete(alpha, beta, gamma) {
-        if (alpha === null) return;
+        // 1. Seguro contra valores nulos o corruptos (NaN) que congelan la brújula
+        if (alpha === null || alpha === undefined || isNaN(alpha)) return;
+        if (isNaN(rumboSuavizadoSin) || isNaN(rumboSuavizadoCos)) {
+            rumboSuavizadoSin = 0;
+            rumboSuavizadoCos = 1;
+        }
+
         const rad = Math.PI / 180;
         const aRad = alpha * rad; const bRad = (beta || 0) * rad; const gRad = (gamma || 0) * rad;
 
@@ -502,6 +527,59 @@ document.addEventListener('DOMContentLoaded', () => {
 
         moverCintaYMarcador(rumboCalibrado);
         if (typeof window.dibujarLienzoTrail === 'function') window.dibujarLienzoTrail();
+    }
+
+    // 2. Sistema de reinicio en frío para el botón [ ↻ SENSOR ]
+    const manejadorOrientacionAbsoluta = (e) => procesarOrientacionBrazalete(e.alpha, e.beta, e.gamma);
+    const manejadorOrientacionEstandar = (e) => {
+        if (e.webkitCompassHeading !== undefined) {
+            rumboSensorCrudo = e.webkitCompassHeading;
+            window.pipCalibratedHeading = normalizarGrados(rumboSensorCrudo + offsetCalibracion);
+            moverCintaYMarcador(window.pipCalibratedHeading);
+        } else {
+            procesarOrientacionBrazalete(e.alpha, e.beta, e.gamma);
+        }
+    };
+
+    async function reiniciarBusBrujula() {
+        rumboSuavizadoSin = 0;
+        rumboSuavizadoCos = 1;
+        contadorCambioLado = 0;
+
+        if (calModeLabel) calModeLabel.textContent = "MOVE WRIST IN ∞ (FIG-8)";
+
+        window.removeEventListener('deviceorientationabsolute', manejadorOrientacionAbsoluta, true);
+        window.removeEventListener('deviceorientation', manejadorOrientacionEstandar, true);
+
+        if (isNativeApp && Motion && typeof Motion.removeAllListeners === 'function') {
+            try { await Motion.removeAllListeners(); } catch (e) {}
+        }
+
+        setTimeout(async () => {
+            if (isNativeApp && Motion && typeof Motion.addListener === 'function') {
+                try {
+                    await Motion.addListener('orientation', (event) => {
+                        if (event.alpha !== null) procesarOrientacionBrazalete(event.alpha, event.beta, event.gamma);
+                    });
+                } catch (err) {}
+            }
+            if ('ondeviceorientationabsolute' in window) {
+                window.addEventListener('deviceorientationabsolute', manejadorOrientacionAbsoluta, true);
+            } else if (window.DeviceOrientationEvent) {
+                window.addEventListener('deviceorientation', manejadorOrientacionEstandar, true);
+            }
+
+            setTimeout(() => {
+                actualizarUICalibrador('SENSOR BUS RESTARTED');
+            }, 2500);
+        }, 150);
+    }
+
+    if (btnCalHardReset) {
+        btnCalHardReset.addEventListener('click', () => {
+            if (window.reproducirSonido) window.reproducirSonido('ui_pipboy_tab.wav');
+            reiniciarBusBrujula();
+        });
     }
 
     function moverCintaYMarcador(gradosActuales) {
@@ -566,10 +644,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let lonSuavizadaGPS = null;
     let ultimaPrecisionGPS = 10;
 
-    // Variables de Cámara Táctica (Zoom y Paneo Libre)
-    let trailCamMode = 'FOLLOW'; // 'FOLLOW' | 'FIT' | 'FREE'
-    let trailZoomSpanMetros = 150; // Zoom por defecto: 150 metros de ancho de pantalla
-    let trailCamX = 0; // Metros desde el punto de referencia
+    let trailCamMode = 'FOLLOW';
+    let trailZoomSpanMetros = 150;
+    let trailCamX = 0;
     let trailCamY = 0;
     let ultimoPxPorMetro = 1;
 
@@ -583,7 +660,7 @@ document.addEventListener('DOMContentLoaded', () => {
         btnZoomIn.addEventListener('click', () => {
             if (window.reproducirSonido) window.reproducirSonido('ui_pipboy_tuner.wav');
             if (trailCamMode === 'FIT') trailCamMode = 'FOLLOW';
-            trailZoomSpanMetros = Math.max(20, trailZoomSpanMetros * 0.6); // Acerca hasta 20 metros
+            trailZoomSpanMetros = Math.max(20, trailZoomSpanMetros * 0.6);
             actualizarBotonesCamaraUI();
             window.dibujarLienzoTrail();
         });
@@ -593,7 +670,7 @@ document.addEventListener('DOMContentLoaded', () => {
         btnZoomOut.addEventListener('click', () => {
             if (window.reproducirSonido) window.reproducirSonido('ui_pipboy_tuner.wav');
             if (trailCamMode === 'FIT') trailCamMode = 'FOLLOW';
-            trailZoomSpanMetros = Math.min(2500000, trailZoomSpanMetros * 1.65); // Aleja hasta 2,500 KM
+            trailZoomSpanMetros = Math.min(2500000, trailZoomSpanMetros * 1.65);
             actualizarBotonesCamaraUI();
             window.dibujarLienzoTrail();
         });
@@ -617,7 +694,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Paneo táctil y con mouse sobre el lienzo del Trail
     if (trailCanvas) {
         let arrastrandoMapa = false;
         let lastPanX = 0;
@@ -693,7 +769,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const ultimo = trailPoints[trailPoints.length - 1];
         const distKM = calcularDistancia(ultimo.lat, ultimo.lon, latSuavizadaGPS, lonSuavizadaGPS);
         
-        // Filtro inteligente: registra movimiento real a partir de 3 metros
         if (distKM * 1000 >= 3.0 && distKM * 1000 <= 500) {
             trailDistanceKM += distKM;
             trailPoints.push({ lat: latSuavizadaGPS, lon: lonSuavizadaGPS, t: Date.now() });
@@ -703,7 +778,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Si estaba grabando antes de recargar, retoma automáticamente
     if (trailState === 'REC') {
         trailSamplerInterval = setInterval(muestrearPuntoTrail, 3000);
     }
@@ -746,13 +820,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function elegirPasoCuadriculaMetros(spanMetros) {
-        if (spanMetros <= 60) return 10;          // 10 M
-        if (spanMetros <= 180) return 25;         // 25 M
-        if (spanMetros <= 600) return 100;        // 100 M
-        if (spanMetros <= 2500) return 250;       // 250 M
-        if (spanMetros <= 15000) return 1000;     // 1 KM
-        if (spanMetros <= 150000) return 10000;   // 10 KM (Ideal para ubicarte entre ciudades)
-        return 100000;                            // 100 KM
+        if (spanMetros <= 60) return 10;
+        if (spanMetros <= 180) return 25;
+        if (spanMetros <= 600) return 100;
+        if (spanMetros <= 2500) return 250;
+        if (spanMetros <= 15000) return 1000;
+        if (spanMetros <= 150000) return 10000;
+        return 100000;
     }
 
     function formatearMetrosEtiqueta(m) {
@@ -781,7 +855,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // 1. Proyección Métrica Real desde el origen
         const refLat = listaNodos[0].lat;
         const refLon = listaNodos[0].lon;
         const metrosPorGradoLon = 111320 * Math.cos(refLat * Math.PI / 180);
@@ -793,7 +866,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const puntosMetros = listaNodos.map(pt => aMetros(pt.lat, pt.lon));
         const posJugadorM = puntosMetros[puntosMetros.length - 1];
 
-        // 2. Gestión de Cámara (FOLLOW, FIT o FREE)
         if (trailCamMode === 'FIT') {
             let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
             puntosMetros.forEach(p => {
@@ -815,7 +887,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const aPantallaX = (mX) => (W / 2) + (mX - trailCamX) * pxPorMetro;
         const aPantallaY = (mY) => (H / 2) - (mY - trailCamY) * pxPorMetro;
 
-        // 3. Dibujar Cuadrícula Táctica de Escala Real (10M a 10KM+)
         const pasoGridM = elegirPasoCuadriculaMetros(spanVisibleMetros);
         const minVisX = trailCamX - (W / 2) / pxPorMetro;
         const maxVisX = trailCamX + (W / 2) / pxPorMetro;
@@ -839,7 +910,6 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.beginPath(); ctx.moveTo(0, py); ctx.lineTo(W, py); ctx.stroke();
         }
 
-        // Mira central del radar
         ctx.strokeStyle = 'rgba(29, 242, 59, 0.28)';
         ctx.beginPath();
         ctx.moveTo(W / 2 - 8, H / 2); ctx.lineTo(W / 2 + 8, H / 2);
@@ -850,7 +920,6 @@ document.addEventListener('DOMContentLoaded', () => {
             trailScaleIndicator.textContent = `GRID: ${formatearMetrosEtiqueta(pasoGridM)} // SPAN: ${formatearMetrosEtiqueta(spanVisibleMetros)}`;
         }
 
-        // 4. Dibujar Camino Recorrido (Trail)
         if (trailPoints.length > 0) {
             ctx.save();
             ctx.strokeStyle = '#1df23b'; ctx.lineWidth = 2.5; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
@@ -873,7 +942,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // Punto de partida [START]
             const startPx = aPantallaX(puntosMetros[0].x);
             const startPy = aPantallaY(puntosMetros[0].y);
             ctx.strokeStyle = '#ffcc00'; ctx.lineWidth = 1.5;
@@ -881,7 +949,6 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.restore();
         }
 
-        // 5. Dibujar Waypoints Activos (Locales o Anclados al Borde si están en otra ciudad)
         const wpActivos = pipWaypoints.filter(w => w.active).slice(0, 4);
         const jugadorPxX = aPantallaX(posJugadorM.x);
         const jugadorPxY = aPantallaY(posJugadorM.y);
@@ -902,15 +969,6 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.font = '12px VT323, monospace';
 
             if (dentroDePantalla) {
-                // Línea táctica punteada hacia el Waypoint
-                ctx.setLineDash([4, 4]);
-                ctx.lineWidth = 1;
-                ctx.globalAlpha = 0.45;
-                ctx.beginPath(); ctx.moveTo(jugadorPxX, jugadorPxY); ctx.lineTo(wx, wy); ctx.stroke();
-                ctx.setLineDash([]);
-                ctx.globalAlpha = 1.0;
-
-                // Rombo en coordenada exacta
                 ctx.beginPath();
                 ctx.moveTo(wx, wy - 6); ctx.lineTo(wx + 6, wy); ctx.lineTo(wx, wy + 6); ctx.lineTo(wx - 6, wy);
                 ctx.closePath(); ctx.fill();
@@ -918,7 +976,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 ctx.textAlign = 'left';
                 ctx.fillText(`${wp.name} [${textoDist}]`, wx + 9, wy + 4);
             } else {
-                // El Waypoint está fuera del zoom actual (ej. en Puebla y tú en Monterrey): anclar al borde
                 const dx = wx - (W / 2);
                 const dy = wy - (H / 2);
                 const maxX = (W / 2) - margen;
@@ -939,7 +996,6 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.restore();
         });
 
-        // 6. Dibujar Flecha del Usuario y Cono de Visión
         ctx.save();
         ctx.translate(jugadorPxX, jugadorPxY);
         ctx.rotate((window.pipCalibratedHeading || 0) * Math.PI / 180); 
@@ -961,13 +1017,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // 7. MOTOR HÍBRIDO Y RECEPTOR GPS NATIVO CONTINUO (PANTALLA APAGADA)
     // ==========================================
-    const isNativeApp = !!(window.Capacitor && (
-        (typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform()) ||
-        window.Capacitor.isNative
-    ));
-    const CapacitorPlugins = (window.Capacitor && window.Capacitor.Plugins) ? window.Capacitor.Plugins : {};
-    const { Geolocation, Motion } = CapacitorPlugins;
-
     const tripDisplay = document.getElementById('trip-distancia');
     const btnResetTrip = document.getElementById('btn-reset-trip');
     let totalKM = parseFloat(localStorage.getItem('pip_trip_km')) || 0;
@@ -1000,7 +1049,6 @@ document.addEventListener('DOMContentLoaded', () => {
             lonSuavizadaGPS = lonSuavizadaGPS * 0.35 + rawLon * 0.65;
         }
 
-        // Si el Trail está grabando, muestrea al instante cada vez que entra un pulso GPS (incluso bloqueado)
         if (trailState === 'REC') {
             muestrearPuntoTrail();
         }
@@ -1023,37 +1071,12 @@ document.addEventListener('DOMContentLoaded', () => {
         } else { ultimaUbicacion = { lat: rawLat, lon: rawLon }; }
     }
 
-    // Puente global que recibe las coordenadas desde MainActivity.java con pantalla apagada
     window.recibirGPSNativoContinuo = function(lat, lon, acc) {
         procesarActualizacionGPS(lat, lon, acc);
     };
 
     async function iniciarSensoresTacticos() {
-        if (isNativeApp && Motion) {
-            try {
-                await Motion.addListener('orientation', (event) => {
-                    if (event.alpha !== null) {
-                        procesarOrientacionBrazalete(event.alpha, event.beta, event.gamma);
-                    }
-                });
-            } catch (err) {}
-        } else {
-            if ('ondeviceorientationabsolute' in window) {
-                window.addEventListener('deviceorientationabsolute', (e) => {
-                    procesarOrientacionBrazalete(e.alpha, e.beta, e.gamma);
-                }, true);
-            } else if (window.DeviceOrientationEvent) {
-                window.addEventListener('deviceorientation', (e) => {
-                    if (e.webkitCompassHeading !== undefined) {
-                        rumboSensorCrudo = e.webkitCompassHeading;
-                        window.pipCalibratedHeading = normalizarGrados(rumboSensorCrudo + offsetCalibracion);
-                        moverCintaYMarcador(window.pipCalibratedHeading);
-                    } else {
-                        procesarOrientacionBrazalete(e.alpha, e.beta, e.gamma);
-                    }
-                }, true);
-            }
-        }
+        reiniciarBusBrujula();
 
         if (isNativeApp && Geolocation) {
             try {

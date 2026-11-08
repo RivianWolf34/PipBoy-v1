@@ -636,15 +636,37 @@ body {
 }
 
 .radio-col-right .panel-emisoras-zona-pro ul,
-#lista-resultados-satelite {
-    flex: 1 1 0% !important;
+/* =====================================================
+   SCROLLBARS PIP-BOY EN RADIO Y CONTENEDORES DE 5 LÍNEAS
+===================================================== */
+.pip-scroll-col::-webkit-scrollbar,
+.pip-five-lines-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.pip-scroll-col::-webkit-scrollbar-track,
+.pip-five-lines-list::-webkit-scrollbar-track {
+    background: rgba(0, 15, 0, 0.7);
+    border: 1px solid var(--verde-oscuro);
+}
+
+.pip-scroll-col::-webkit-scrollbar-thumb,
+.pip-five-lines-list::-webkit-scrollbar-thumb {
+    background: var(--verde-pipboy);
+    box-shadow: 0 0 6px var(--verde-pipboy);
+}
+
+/* Límite exacto de ~5 estaciones por caja con scroll propio */
+#lista-favoritos-radio.pip-five-lines-list,
+#lista-resultados-satelite.pip-five-lines-list {
+    flex: 0 0 auto !important;
+    height: 120px !important;
+    max-height: 120px !important;
+    min-height: 120px !important;
     overflow-y: auto !important;
-    min-height: 0 !important;
-    max-height: none !important;
     list-style: none;
-    padding: 0;
+    padding: 0 4px 0 0;
     margin: 0;
-    padding-right: 4px;
 }
 
 /* =====================================================
@@ -1137,22 +1159,36 @@ body {
     flex-shrink: 0;
 }
 
+/* Estado normal de los botones tácticos */
 .chrono-btn {
-    background: rgba(0, 20, 0, 0.6);
-    border: 1px solid var(--verde-oscuro);
-    color: var(--verde-pipboy);
+    background: rgba(0, 20, 0, 0.85) !important;
+    border: 1px solid var(--verde-oscuro) !important;
+    color: var(--verde-pipboy) !important;
     font-size: 0.65rem;
     padding: 2px 5px;
     cursor: pointer;
     font-family: inherit;
     line-height: 1;
     text-align: center;
+    transition: background 0.1s ease, color 0.1s ease;
 }
 
-.chrono-btn:hover, .chrono-btn.activo {
-    border-color: var(--verde-pipboy);
-    background: var(--verde-pipboy);
-    color: var(--fondo-terminal);
+/* Estado activo permanente (ej. [⌖ ME] o [⛶ FIT]) o mientras el dedo presiona el botón */
+.chrono-btn.activo,
+.chrono-btn:active {
+    border-color: var(--verde-pipboy) !important;
+    background: var(--verde-pipboy) !important;
+    color: var(--fondo-terminal) !important;
+    box-shadow: 0 0 8px rgba(29, 242, 59, 0.5);
+}
+
+/* Evita que el hover se quede pegado en pantallas táctiles */
+@media (hover: hover) and (pointer: fine) {
+    .chrono-btn:hover {
+        border-color: var(--verde-pipboy) !important;
+        background: var(--verde-pipboy) !important;
+        color: var(--fondo-terminal) !important;
+    }
 }
 
 .wp-item {
@@ -1182,8 +1218,20 @@ body {
     overflow: hidden;
 }
 
+.vb-reticle {
+    position: relative;
+    padding: 1vh 1vw;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
 .vaultboy-anim {
-    height: clamp(115px, 34vh, 300px) !important;
+    height: clamp(130px, 38vh, 320px) !important;
+    width: auto;
+    image-rendering: pixelated;
+    /* Aplica primero el recorte de fondo blanco y luego el tinte verde del sistema */
+    filter: url(#quitar-fondo-blanco) grayscale(100%) sepia(100%) hue-rotate(75deg) saturate(500%) contrast(1.4) drop-shadow(0 0 6px var(--verde-pipboy));
 }
 
 .stats-info-column {

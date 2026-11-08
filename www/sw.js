@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pipboy-os-v2.3';
+const CACHE_NAME = 'pipboy-os-v2.5';
 const MAP_CACHE_NAME = 'pipboy-map-tiles-v1';
 
 const ASSETS = [
@@ -10,7 +10,7 @@ const ASSETS = [
     './js/map.js',
     './js/radio.js',
     './js/stats.js',
-    './img/vaultboy.gif',
+    './img/nuke.gif',
     './img/icon-192.png',
     './img/icon-512.png',
     './audio/ui_loadscreen_initial.wav',
@@ -30,7 +30,7 @@ const ASSETS = [
 self.addEventListener('install', (e) => {
     e.waitUntil(
         caches.open(CACHE_NAME)
-            .then(cache => cache.addAll(ASSETS))
+            .then(cache => cache.addAll(ASSETS).catch(() => {}))
             .then(() => self.skipWaiting())
     );
 });
@@ -42,22 +42,24 @@ self.addEventListener('activate', (e) => {
                 keys.filter(key => key !== CACHE_NAME && key !== MAP_CACHE_NAME)
                     .map(key => caches.delete(key))
             );
-        })
+        }).then(() => self.clients.claim())
     );
-    self.clients.claim();
 });
 
 self.addEventListener('fetch', (e) => {
     const url = e.request.url;
 
-    // 1. CACHÉ PERSISTENTE DE CUADRANTES DEL MAPA Y LEAFLET (Cache-First con actualización en red)
+    // 1. CACHÉ UNIFICADO DE CUADRANTES OSM (Ignora si pidió a.tile, b.tile o c.tile)
     if (url.includes('tile.openstreetmap.org') || url.includes('unpkg.com/leaflet')) {
+        const urlNormalizada = url.replace(/\/\/[abc]\.tile\.openstreetmap\.org/, '//tile.openstreetmap.org');
+        const cacheKeyReq = new Request(urlNormalizada);
+
         e.respondWith(
             caches.open(MAP_CACHE_NAME).then(cache => {
-                return cache.match(e.request).then(cachedTile => {
+                return cache.match(cacheKeyReq).then(cachedTile => {
                     const fetchPromise = fetch(e.request).then(networkResponse => {
                         if (networkResponse && networkResponse.status === 200) {
-                            cache.put(e.request, networkResponse.clone());
+                            cache.put(cacheKeyReq, networkResponse.clone());
                         }
                         return networkResponse;
                     }).catch(() => cachedTile);
@@ -69,11 +71,16 @@ self.addEventListener('fetch', (e) => {
         return;
     }
 
-    // 2. ARCHIVOS DEL SISTEMA PIP-BOY (Network-First con respaldo inmediato en caché Offline)
+    // 2. IGNORAR STREAMS DE RADIO Y APIS EXTERNAS
+    if (!url.startsWith(self.location.origin) || e.request.destination === 'audio') {
+        return;
+    }
+
+    // 3. ARCHIVOS DEL SISTEMA PIP-BOY
     e.respondWith(
         fetch(e.request)
             .then(networkResponse => {
-                if (networkResponse && networkResponse.status === 200 && e.request.method === 'GET' && url.startsWith(self.location.origin)) {
+                if (networkResponse && networkResponse.status === 200 && e.request.method === 'GET') {
                     const responseClone = networkResponse.clone();
                     caches.open(CACHE_NAME).then(cache => cache.put(e.request, responseClone));
                 }
@@ -85,6 +92,7 @@ self.addEventListener('fetch', (e) => {
                     if (e.request.destination === 'document') {
                         return caches.match('./index.html');
                     }
+                    return new Response('', { status: 408, statusText: 'Offline' });
                 });
             })
     );
