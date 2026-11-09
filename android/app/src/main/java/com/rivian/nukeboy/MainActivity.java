@@ -129,7 +129,7 @@ public class MainActivity extends BridgeActivity {
 
         // 4. Inyectar puente JavaScript
         if (this.bridge != null && this.bridge.getWebView() != null) {
-            this.bridge.getWebView().addJavascriptInterface(new AndroidBridge(), "AndroidPipBoy");
+            this.bridge.getWebView().addJavascriptInterface(new AndroidBridge(), "AndroidNukeboy");
         }
 
         // 5. Arrancar el puente GPS y el reloj nativo para alarmas/chime con pantalla bloqueada

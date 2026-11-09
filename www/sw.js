@@ -1,5 +1,5 @@
-const CACHE_NAME = 'pipboy-os-v2.5';
-const MAP_CACHE_NAME = 'pipboy-map-tiles-v1';
+const CACHE_NAME = 'rivco-os-v2.0.0';
+const MAP_CACHE_NAME = 'rivco-map-tiles-v1';
 
 const ASSETS = [
     './',
@@ -76,7 +76,7 @@ self.addEventListener('fetch', (e) => {
         return;
     }
 
-    // 3. ARCHIVOS DEL SISTEMA PIP-BOY
+    // 3. ARCHIVOS DEL SISTEMA PIP-NUKE
     e.respondWith(
         fetch(e.request)
             .then(networkResponse => {

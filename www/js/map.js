@@ -1,5 +1,5 @@
 /* =====================================================
-   MAP.JS — MOTOR OSM HÍBRIDO + NAVEGACIÓN TÁCTICA ESTABILIZADA
+   MAP.JS — MOTOR OSM HÍBRIDO + NAVEGACIÓN TÁCTICA NEUTRA
 ===================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -41,15 +41,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let tileLayerOSM = null;
     let tieneMapaDescargado = false;
     let totalTilesGuardados = parseInt(localStorage.getItem('pip_osm_tiles_count') || '0', 10);
-    let nombreArchivoMapa = localStorage.getItem('pip_downloaded_map_name') || '';
 
     let userMarker = null;
     let seguirUsuarioEnMapa = true;
     let moviendoCamaraPorCodigo = false;
-    let ultimaLatLocalidad = null;
-    let ultimaLonLocalidad = null;
-    let ultimaLatCamara = null;
-    let ultimaLonCamara = null;
+    let ultimaLatLocalidad = null, ultimaLonLocalidad = null;
+    let ultimaLatCamara = null, ultimaLonCamara = null;
     let resizeTimeout = null;
 
     let rutaPolyline = null;
@@ -57,8 +54,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let destinoActivoCoords = null;
     let buscadorAbierto = false;
 
-    let currentLat = parseFloat(localStorage.getItem('pip_last_real_lat')) || 19.0414;
-    let currentLon = parseFloat(localStorage.getItem('pip_last_real_lon')) || -98.2063;
+    // Coordenadas iniciales neutras (0, 0) hasta recibir señal GPS real
+    let currentLat = parseFloat(localStorage.getItem('pip_last_real_lat')) || 0.0000;
+    let currentLon = parseFloat(localStorage.getItem('pip_last_real_lon')) || 0.0000;
 
     function calcularDistanciaKM(lat1, lon1, lat2, lon2) {
         const R = 6371;
@@ -82,25 +80,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 180);
     }
 
-    // ==========================================
-    // 0. MODAL TÁCTICO DE CONFIRMACIÓN
-    // ==========================================
     function mostrarConfirmacionMapa(titulo, subtitulo, alConfirmar) {
         let modal = document.getElementById('map-confirm-modal');
         if (!modal) {
             modal = document.createElement('div');
             modal.id = 'map-confirm-modal';
-            modal.style.cssText = 'position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,10,0,0.86); z-index:9999; display:flex; justify-content:center; align-items:center;';
+            modal.style.cssText = 'position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.86); z-index:9999; display:flex; justify-content:center; align-items:center;';
             document.body.appendChild(modal);
         }
 
         modal.innerHTML = `
-            <div style="background:rgba(5,20,5,0.98); border:2px solid #ffcc00; box-shadow:0 0 24px rgba(255,204,0,0.45); padding:16px 22px; text-align:center; min-width:270px; max-width:88vw;">
-                <p style="color:#ffcc00; font-size:1.15rem; font-weight:bold; margin-bottom:8px;">[ ${titulo} ]</p>
-                <p style="color:var(--verde-pipboy); font-size:0.85rem; margin-bottom:14px;">${subtitulo}</p>
+            <div style="background:var(--fondo-terminal); border:2px solid var(--ambar-nukeboy); padding:16px 22px; text-align:center; min-width:270px; max-width:88vw;">
+                <p style="color:var(--ambar-nukeboy); font-size:1.15rem; font-weight:bold; margin-bottom:8px;">[ ${titulo} ]</p>
+                <p style="color:var(--verde-nukeboy); font-size:0.85rem; margin-bottom:14px;">${subtitulo}</p>
                 <div style="display:flex; justify-content:center; gap:14px;">
-                    <button id="map-modal-confirm" class="boton-pipboy btn-amber-border" style="padding:6px 16px; margin:0;">[ CONFIRM ]</button>
-                    <button id="map-modal-cancel" class="boton-pipboy" style="padding:6px 16px; margin:0;">[ CANCEL ]</button>
+                    <button id="map-modal-confirm" class="boton-nukeboy btn-amber-border" style="padding:6px 16px; margin:0;">[ CONFIRM ]</button>
+                    <button id="map-modal-cancel" class="boton-nukeboy" style="padding:6px 16px; margin:0;">[ CANCEL ]</button>
                 </div>
             </div>
         `;
@@ -108,8 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
         modal.querySelector('#map-modal-confirm').addEventListener('click', (e) => {
             e.stopPropagation();
             if (window.reproducirSonido) window.reproducirSonido('menu_ok.wav');
-            modal.remove();
-            alConfirmar();
+            modal.remove(); alConfirmar();
         });
 
         modal.querySelector('#map-modal-cancel').addEventListener('click', (e) => {
@@ -119,22 +113,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ==========================================
-    // 1. CONTROLES LATERALES DE RADAR ([+], [-], [⌖ ME], [🔍])
-    // ==========================================
-    if (btnRadarZoomIn) {
-        btnRadarZoomIn.addEventListener('click', () => {
-            if (window.reproducirSonido) window.reproducirSonido('tuner.wav');
-            if (leafletMap) leafletMap.zoomIn();
-        });
-    }
+    if (btnRadarZoomIn) btnRadarZoomIn.addEventListener('click', () => {
+        if (window.reproducirSonido) window.reproducirSonido('tuner.wav');
+        if (leafletMap) leafletMap.zoomIn();
+    });
 
-    if (btnRadarZoomOut) {
-        btnRadarZoomOut.addEventListener('click', () => {
-            if (window.reproducirSonido) window.reproducirSonido('tuner.wav');
-            if (leafletMap) leafletMap.zoomOut();
-        });
-    }
+    if (btnRadarZoomOut) btnRadarZoomOut.addEventListener('click', () => {
+        if (window.reproducirSonido) window.reproducirSonido('tuner.wav');
+        if (leafletMap) leafletMap.zoomOut();
+    });
 
     function actualizarEstadoFollowUI(activo) {
         seguirUsuarioEnMapa = activo;
@@ -148,8 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (leafletMap) {
                 moviendoCamaraPorCodigo = true;
                 leafletMap.setView([currentLat, currentLon], Math.max(leafletMap.getZoom(), 15), { animate: false });
-                ultimaLatCamara = currentLat;
-                ultimaLonCamara = currentLon;
+                ultimaLatCamara = currentLat; ultimaLonCamara = currentLon;
                 setTimeout(() => { moviendoCamaraPorCodigo = false; }, 100);
             }
         });
@@ -158,30 +144,21 @@ document.addEventListener('DOMContentLoaded', () => {
     function alternarPanelBuscador(forzarEstado = null) {
         if (!navigator.onLine) return;
         buscadorAbierto = (forzarEstado !== null) ? forzarEstado : !buscadorAbierto;
-
-        if (searchBoxContainer) {
-            searchBoxContainer.style.display = buscadorAbierto ? 'flex' : 'none';
-        }
-        if (btnToggleSearch) {
-            btnToggleSearch.classList.toggle('activo', buscadorAbierto);
-        }
+        if (searchBoxContainer) searchBoxContainer.style.display = buscadorAbierto ? 'flex' : 'none';
+        if (btnToggleSearch) btnToggleSearch.classList.toggle('activo', buscadorAbierto);
         refrescarTamanoMapaSuave();
     }
 
-    if (btnToggleSearch) {
-        btnToggleSearch.addEventListener('click', () => {
-            if (window.reproducirSonido) window.reproducirSonido('menu_tab.wav');
-            alternarPanelBuscador();
-        });
-    }
+    if (btnToggleSearch) btnToggleSearch.addEventListener('click', () => {
+        if (window.reproducirSonido) window.reproducirSonido('menu_tab.wav');
+        alternarPanelBuscador();
+    });
 
-    if (btnCloseSearch) {
-        btnCloseSearch.addEventListener('click', () => {
-            if (window.reproducirSonido) window.reproducirSonido('menu_cancel.wav');
-            alternarPanelBuscador(false);
-            if (listMapResults) listMapResults.style.display = 'none';
-        });
-    }
+    if (btnCloseSearch) btnCloseSearch.addEventListener('click', () => {
+        if (window.reproducirSonido) window.reproducirSonido('menu_cancel.wav');
+        alternarPanelBuscador(false);
+        if (listMapResults) listMapResults.style.display = 'none';
+    });
 
     function activarSubPestanaMap(pestana) {
         if (window.reproducirSonido) window.reproducirSonido('menu_select.wav');
@@ -210,8 +187,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!displayHora) return;
         const ahora = new Date();
         displayHora.textContent = `${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}:${String(ahora.getSeconds()).padStart(2, '0')}`;
-
-        // Sincronizar suavemente con el GPS global de stats.js sin crear otro watchPosition duplicado
         if (typeof window.pipCurrentLat === 'number' && typeof window.pipCurrentLon === 'number') {
             procesarUbicacionReal(window.pipCurrentLat, window.pipCurrentLon);
         }
@@ -219,10 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(actualizarRelojMapa, 1000);
     actualizarRelojMapa();
 
-    // ==========================================
-    // 2. BASE DE DATOS INDEXEDDB Y PAQUETES .ZIP OFFLINE
-    // ==========================================
-    const DB_NAME = 'PipBoyOSMTilesDB';
+    const DB_NAME = 'NukeboyOSMTilesDB';
     const STORE_TILES = 'osm_tiles';
     let dbPromise = null;
 
@@ -232,9 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const req = indexedDB.open(DB_NAME, 1);
             req.onupgradeneeded = (e) => {
                 const db = e.target.result;
-                if (!db.objectStoreNames.contains(STORE_TILES)) {
-                    db.createObjectStore(STORE_TILES);
-                }
+                if (!db.objectStoreNames.contains(STORE_TILES)) db.createObjectStore(STORE_TILES);
             };
             req.onsuccess = (e) => resolve(e.target.result);
             req.onerror = (e) => reject(e.target.error);
@@ -251,9 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 req.onsuccess = () => resolve(req.result || null);
                 req.onerror = () => resolve(null);
             });
-        } catch (e) {
-            return null;
-        }
+        } catch (e) { return null; }
     }
 
     async function borrarTodosLosTilesDB() {
@@ -264,9 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
             tx.oncomplete = () => {
                 localStorage.removeItem('pip_downloaded_map_name');
                 localStorage.setItem('pip_osm_tiles_count', '0');
-                totalTilesGuardados = 0;
-                nombreArchivoMapa = '';
-                tieneMapaDescargado = false;
+                totalTilesGuardados = 0; tieneMapaDescargado = false;
                 resolve();
             };
         });
@@ -275,11 +241,9 @@ document.addEventListener('DOMContentLoaded', () => {
     async function descomprimirBufferDeflate(uint8Compressed) {
         const ds = new DecompressionStream('deflate-raw');
         const writer = ds.writable.getWriter();
-        writer.write(uint8Compressed);
-        writer.close();
+        writer.write(uint8Compressed); writer.close();
         const response = new Response(ds.readable);
-        const ab = await response.arrayBuffer();
-        return new Uint8Array(ab);
+        return new Uint8Array(await response.arrayBuffer());
     }
 
     async function importarPaqueteZipOSM(file) {
@@ -289,50 +253,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let eocdOffset = -1;
         for (let i = bytes.length - 22; i >= Math.max(0, bytes.length - 65557); i--) {
-            if (view.getUint32(i, true) === 0x06054b50) {
-                eocdOffset = i;
-                break;
-            }
+            if (view.getUint32(i, true) === 0x06054b50) { eocdOffset = i; break; }
         }
         if (eocdOffset === -1) throw new Error("Archivo ZIP inválido");
 
         const totalEntries = view.getUint16(eocdOffset + 10, true);
         let cdOffset = view.getUint32(eocdOffset + 16, true);
-
         const entradasTiles = [];
         const decoder = new TextDecoder();
 
         for (let i = 0; i < totalEntries; i++) {
             if (view.getUint32(cdOffset, true) !== 0x02014b50) break;
-
             const compMethod = view.getUint16(cdOffset + 10, true);
             const compSize = view.getUint32(cdOffset + 20, true);
             const fileNameLen = view.getUint16(cdOffset + 28, true);
             const extraLen = view.getUint16(cdOffset + 30, true);
             const commentLen = view.getUint16(cdOffset + 32, true);
             const localHeaderOffset = view.getUint32(cdOffset + 42, true);
-
             const fileName = decoder.decode(bytes.subarray(cdOffset + 46, cdOffset + 46 + fileNameLen));
             cdOffset += 46 + fileNameLen + extraLen + commentLen;
 
             const match = fileName.match(/(\d+)\/(\d+)\/(\d+)\.(png|jpg|jpeg|webp)$/i);
             if (match && compSize > 0) {
-                const keyZXY = `${match[1]}/${match[2]}/${match[3]}`;
-                entradasTiles.push({ keyZXY, compMethod, compSize, localHeaderOffset });
+                entradasTiles.push({ keyZXY: `${match[1]}/${match[2]}/${match[3]}`, compMethod, compSize, localHeaderOffset });
             }
         }
 
-        if (entradasTiles.length === 0) {
-            throw new Error("No se encontraron cuadros {z}/{x}/{y}.png en el ZIP.");
-        }
-
+        if (entradasTiles.length === 0) throw new Error("Sin tiles válidos");
         const db = await abrirDBTiles();
         const loteTamano = 250;
 
         for (let i = 0; i < entradasTiles.length; i += loteTamano) {
             const lote = entradasTiles.slice(i, i + loteTamano);
             const paresGuardar = [];
-
             for (const item of lote) {
                 const lh = item.localHeaderOffset;
                 if (view.getUint32(lh, true) !== 0x04034b50) continue;
@@ -340,22 +293,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const exLen = view.getUint16(lh + 28, true);
                 const dataStart = lh + 30 + fnLen + exLen;
                 const rawSlice = bytes.subarray(dataStart, dataStart + item.compSize);
-
-                let fileBytes = null;
-                if (item.compMethod === 0) {
-                    fileBytes = rawSlice;
-                } else if (item.compMethod === 8) {
-                    fileBytes = await descomprimirBufferDeflate(rawSlice);
-                }
-
-                if (fileBytes) {
-                    paresGuardar.push({
-                        key: item.keyZXY,
-                        blob: new Blob([fileBytes], { type: 'image/png' })
-                    });
-                }
+                let fileBytes = (item.compMethod === 0) ? rawSlice : (item.compMethod === 8 ? await descomprimirBufferDeflate(rawSlice) : null);
+                if (fileBytes) paresGuardar.push({ key: item.keyZXY, blob: new Blob([fileBytes], { type: 'image/png' }) });
             }
-
             await new Promise((resolve, reject) => {
                 const tx = db.transaction(STORE_TILES, 'readwrite');
                 const store = tx.objectStore(STORE_TILES);
@@ -363,7 +303,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 tx.oncomplete = () => resolve();
                 tx.onerror = (e) => reject(e.target.error);
             });
-
             const pct = Math.min(99, Math.round(((i + lote.length) / entradasTiles.length) * 100));
             if (btnLoadOfflineMap) btnLoadOfflineMap.textContent = `${pct}%`;
         }
@@ -371,24 +310,17 @@ document.addEventListener('DOMContentLoaded', () => {
         totalTilesGuardados += entradasTiles.length;
         localStorage.setItem('pip_osm_tiles_count', String(totalTilesGuardados));
         localStorage.setItem('pip_downloaded_map_name', file.name.toUpperCase());
-        nombreArchivoMapa = file.name.toUpperCase();
         tieneMapaDescargado = true;
     }
 
     function actualizarBotonesMapaDescargadoUI() {
         if (totalTilesGuardados > 0) {
             tieneMapaDescargado = true;
-            if (btnLoadOfflineMap) {
-                btnLoadOfflineMap.textContent = '[OSM✓]';
-                btnLoadOfflineMap.classList.add('activo');
-            }
+            if (btnLoadOfflineMap) { btnLoadOfflineMap.textContent = '[OSM✓]'; btnLoadOfflineMap.classList.add('activo'); }
             if (btnClearOfflineMap) btnClearOfflineMap.style.display = 'block';
         } else {
             tieneMapaDescargado = false;
-            if (btnLoadOfflineMap) {
-                btnLoadOfflineMap.textContent = '[MAP]';
-                btnLoadOfflineMap.classList.remove('activo');
-            }
+            if (btnLoadOfflineMap) { btnLoadOfflineMap.textContent = '[MAP]'; btnLoadOfflineMap.classList.remove('activo'); }
             if (btnClearOfflineMap) btnClearOfflineMap.style.display = 'none';
         }
     }
@@ -396,14 +328,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnLoadOfflineMap && inputOfflineMap) {
         btnLoadOfflineMap.addEventListener('click', () => {
             if (window.reproducirSonido) window.reproducirSonido('menu_tab.wav');
-            inputOfflineMap.value = '';
-            inputOfflineMap.click();
+            inputOfflineMap.value = ''; inputOfflineMap.click();
         });
-
         inputOfflineMap.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
+            const file = e.target.files[0]; if (!file) return;
             try {
                 if (btnLoadOfflineMap) btnLoadOfflineMap.textContent = '[...]';
                 await importarPaqueteZipOSM(file);
@@ -412,7 +340,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 gestionarEstadoRed();
                 if (window.reproducirSonido) window.reproducirSonido('menu_ok.wav');
             } catch (err) {
-                alert("SELECCIONA UN ARCHIVO .ZIP CON CUADROS DE OPENSTREETMAP ({Z}/{X}/{Y}.PNG).");
+                alert("SELECT A VALID .ZIP ARCHIVE WITH {Z}/{X}/{Y}.PNG TILES.");
                 actualizarBotonesMapaDescargadoUI();
             }
         });
@@ -428,19 +356,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ==========================================
-    // 3. CAPA LEAFLET HÍBRIDA Y SEGUIMIENTO SUAVE
-    // ==========================================
     function crearCapaOSMHibrida() {
         const CapaHibrida = L.TileLayer.extend({
             createTile: function(coords, done) {
                 const tile = document.createElement('img');
                 L.DomEvent.on(tile, 'load', L.bind(this._tileOnLoad, this, done, tile));
                 L.DomEvent.on(tile, 'error', L.bind(this._tileOnError, this, done, tile));
-
-                tile.alt = '';
-                tile.setAttribute('role', 'presentation');
-
+                tile.alt = ''; tile.setAttribute('role', 'presentation');
                 const keyZXY = `${coords.z}/${coords.x}/${coords.y}`;
                 const urlOnline = this.getTileUrl(coords);
 
@@ -450,64 +372,42 @@ document.addEventListener('DOMContentLoaded', () => {
                             const objUrl = URL.createObjectURL(blobGuardado);
                             tile.addEventListener('load', () => URL.revokeObjectURL(objUrl), { once: true });
                             tile.src = objUrl;
-                        } else {
-                            tile.src = urlOnline;
-                        }
+                        } else { tile.src = urlOnline; }
                     });
-                } else {
-                    tile.src = urlOnline;
-                }
-
+                } else { tile.src = urlOnline; }
                 return tile;
             }
         });
-
         return new CapaHibrida('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            keepBuffer: 4,
-            updateWhenIdle: true,
-            updateWhenZooming: false
+            maxZoom: 19, keepBuffer: 4, updateWhenIdle: true, updateWhenZooming: false
         });
     }
 
     function inicializarLeaflet(latInicial, lonInicial) {
         if (leafletMap || !contenedorMapa || typeof L === 'undefined') return;
-
         leafletMap = L.map('leaflet-map-container', {
-            zoomControl: false,
-            attributionControl: false,
-            fadeAnimation: false,
-            zoomAnimation: true
+            zoomControl: false, attributionControl: false, fadeAnimation: false, zoomAnimation: true
         }).setView([latInicial, lonInicial], 16);
 
-        ultimaLatCamara = latInicial;
-        ultimaLonCamara = lonInicial;
-
+        ultimaLatCamara = latInicial; ultimaLonCamara = lonInicial;
         tileLayerOSM = crearCapaOSMHibrida().addTo(leafletMap);
 
         const pipIcon = L.divIcon({
             className: 'pip-map-user-icon',
-            html: `<div style="width:14px;height:14px;background:#ffcc00;border:2px solid #1df23b;border-radius:50%;box-shadow:0 0 10px #ffcc00;"></div>`,
-            iconSize: [14, 14],
-            iconAnchor: [7, 7]
+            html: `<div style="width:14px;height:14px;background:var(--ambar-nukeboy);border:2px solid var(--verde-nukeboy);border-radius:50%;box-shadow:0 0 10px var(--ambar-nukeboy);"></div>`,
+            iconSize: [14, 14], iconAnchor: [7, 7]
         });
 
         userMarker = L.marker([latInicial, lonInicial], { icon: pipIcon }).addTo(leafletMap);
 
-        // Si el usuario mueve el mapa con 1 o 2 dedos, se suelta [⌖ ME]
         leafletMap.on('dragstart', () => {
-            if (!moviendoCamaraPorCodigo) {
-                actualizarEstadoFollowUI(false);
-            }
+            if (!moviendoCamaraPorCodigo) actualizarEstadoFollowUI(false);
         });
 
-        // Tap con 1 dedo en el mapa para fijar destino único respetando calles
         leafletMap.on('click', (e) => {
             if (!navigator.onLine) return;
-            const tapLat = e.latlng.lat;
-            const tapLon = e.latlng.lng;
+            const tapLat = e.latlng.lat, tapLon = e.latlng.lng;
             const distKM = calcularDistanciaKM(currentLat, currentLon, tapLat, tapLon);
-
             if (window.reproducirSonido) window.reproducirSonido('menu_select.wav');
 
             const mensajeSub = destinoActivoCoords
@@ -517,16 +417,13 @@ document.addEventListener('DOMContentLoaded', () => {
             mostrarConfirmacionMapa('SET ROUTE TARGET?', mensajeSub, async () => {
                 let etiquetaPunto = `POINT (${tapLat.toFixed(4)}, ${tapLon.toFixed(4)})`;
                 try {
-                    const resRev = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${tapLat}&lon=${tapLon}&zoom=18`, {
-                        headers: { 'Accept-Language': 'es' }
-                    });
+                    const resRev = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${tapLat}&lon=${tapLon}&zoom=18`);
                     const dataRev = await resRev.json();
                     if (dataRev && dataRev.address) {
                         const calle = dataRev.address.road || dataRev.address.pedestrian || dataRev.address.suburb || dataRev.address.neighbourhood;
                         if (calle) etiquetaPunto = calle.toUpperCase();
                     }
                 } catch (err) {}
-
                 trazarRutaHaciaDestino(tapLat, tapLon, etiquetaPunto);
             });
         });
@@ -545,18 +442,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.addEventListener('resize', refrescarTamanoMapaSuave);
 
-    // ==========================================
-    // 4. BUSCADOR Y ENRUTADOR OSRM (SENTIDO DE CALLES)
-    // ==========================================
     function limpiarRutaActivaSinPreguntar() {
-        if (rutaPolyline && leafletMap) {
-            leafletMap.removeLayer(rutaPolyline);
-            rutaPolyline = null;
-        }
-        if (destinoMarker && leafletMap) {
-            leafletMap.removeLayer(destinoMarker);
-            destinoMarker = null;
-        }
+        if (rutaPolyline && leafletMap) { leafletMap.removeLayer(rutaPolyline); rutaPolyline = null; }
+        if (destinoMarker && leafletMap) { leafletMap.removeLayer(destinoMarker); destinoMarker = null; }
         destinoActivoCoords = null;
         if (routeTelemetryBar) routeTelemetryBar.style.display = 'none';
         if (btnMapClearRoute) btnMapClearRoute.style.display = 'none';
@@ -567,44 +455,34 @@ document.addEventListener('DOMContentLoaded', () => {
     function solicitarConfirmacionBorrarRuta() {
         if (!destinoActivoCoords) return;
         if (window.reproducirSonido) window.reproducirSonido('menu_select.wav');
-        mostrarConfirmacionMapa(
-            'CLEAR ACTIVE ROUTE?',
-            `Remove target "${destinoActivoCoords.nombre}" and clear path?`,
-            () => {
-                limpiarRutaActivaSinPreguntar();
-                actualizarEstadoFollowUI(true);
-                if (leafletMap) {
-                    moviendoCamaraPorCodigo = true;
-                    leafletMap.setView([currentLat, currentLon], 16, { animate: false });
-                    setTimeout(() => { moviendoCamaraPorCodigo = false; }, 100);
-                }
+        mostrarConfirmacionMapa('CLEAR ACTIVE ROUTE?', `Remove target "${destinoActivoCoords.nombre}" and clear path?`, () => {
+            limpiarRutaActivaSinPreguntar();
+            actualizarEstadoFollowUI(true);
+            if (leafletMap) {
+                moviendoCamaraPorCodigo = true;
+                leafletMap.setView([currentLat, currentLon], 16, { animate: false });
+                setTimeout(() => { moviendoCamaraPorCodigo = false; }, 100);
             }
-        );
+        });
     }
 
-    if (btnMapClearRoute) {
-        btnMapClearRoute.addEventListener('click', solicitarConfirmacionBorrarRuta);
-    }
+    if (btnMapClearRoute) btnMapClearRoute.addEventListener('click', solicitarConfirmacionBorrarRuta);
 
     async function trazarRutaHaciaDestino(destLat, destLon, nombreLugar) {
         if (!leafletMap) inicializarLeaflet(currentLat, currentLon);
         limpiarRutaActivaSinPreguntar();
-
         alternarPanelBuscador(false);
         destinoActivoCoords = { lat: destLat, lon: destLon, nombre: nombreLugar };
 
+        const colSec = window.pipColorSecundario || '#00e5ff';
         const destIcon = L.divIcon({
             className: 'pip-map-dest-icon',
-            html: `<div style="color:#ffcc00; font-size:20px; font-weight:bold; text-shadow:0 0 8px #ffcc00; transform:translate(-6px, -10px);">◈</div>`,
-            iconSize: [22, 22],
-            iconAnchor: [11, 11]
+            html: `<div style="color:var(--ambar-nukeboy); font-size:20px; font-weight:bold; text-shadow:0 0 8px var(--ambar-nukeboy); transform:translate(-6px, -10px);">◈</div>`,
+            iconSize: [22, 22], iconAnchor: [11, 11]
         });
 
         destinoMarker = L.marker([destLat, destLon], { icon: destIcon }).addTo(leafletMap);
-        destinoMarker.on('click', (e) => {
-            L.DomEvent.stopPropagation(e);
-            solicitarConfirmacionBorrarRuta();
-        });
+        destinoMarker.on('click', (e) => { L.DomEvent.stopPropagation(e); solicitarConfirmacionBorrarRuta(); });
 
         if (routeTelemetryBar) {
             routeTelemetryBar.style.display = 'flex';
@@ -622,13 +500,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data && data.routes && data.routes.length > 0) {
                 const route = data.routes[0];
                 const coordsLatLng = route.geometry.coordinates.map(c => [c[1], c[0]]);
-
-                rutaPolyline = L.polyline(coordsLatLng, {
-                    color: '#ffcc00',
-                    weight: 4,
-                    opacity: 0.92,
-                    dashArray: '10, 6'
-                }).addTo(leafletMap);
+                rutaPolyline = L.polyline(coordsLatLng, { color: colSec, weight: 4, opacity: 0.92, dashArray: '10, 6' }).addTo(leafletMap);
 
                 actualizarEstadoFollowUI(false);
                 moviendoCamaraPorCodigo = true;
@@ -637,20 +509,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const distKM = route.distance / 1000;
                 const mins = Math.max(1, Math.round(route.duration / 60));
-                if (routeStatsText) {
-                    routeStatsText.textContent = `${formatearDistancia(distKM)} // ~${mins} MIN`;
-                }
+                if (routeStatsText) routeStatsText.textContent = `${formatearDistancia(distKM)} // ~${mins} MIN`;
                 if (window.reproducirSonido) window.reproducirSonido('signal_found.wav', 0.55);
                 return;
             }
         } catch (err) {}
 
-        rutaPolyline = L.polyline([[currentLat, currentLon], [destLat, destLon]], {
-            color: '#ffcc00',
-            weight: 3,
-            dashArray: '6, 6'
-        }).addTo(leafletMap);
-
+        rutaPolyline = L.polyline([[currentLat, currentLon], [destLat, destLon]], { color: colSec, weight: 3, dashArray: '6, 6' }).addTo(leafletMap);
         actualizarEstadoFollowUI(false);
         moviendoCamaraPorCodigo = true;
         leafletMap.fitBounds(rutaPolyline.getBounds(), { padding: [28, 28], animate: false });
@@ -663,8 +528,8 @@ document.addEventListener('DOMContentLoaded', () => {
     async function consultarNominatim(textoQuery) {
         const delta = 0.65;
         const viewbox = `${currentLon - delta},${currentLat + delta},${currentLon + delta},${currentLat - delta}`;
-        const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=8&countrycodes=mx&q=${encodeURIComponent(textoQuery)}&viewbox=${viewbox}&bounded=0`;
-        const res = await fetch(url, { headers: { 'Accept-Language': 'es' } });
+        const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=8&q=${encodeURIComponent(textoQuery)}&viewbox=${viewbox}&bounded=0`;
+        const res = await fetch(url);
         const datos = await res.json();
         if (!Array.isArray(datos)) return [];
         return datos.map(item => ({
@@ -689,9 +554,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     nombre: (partes.slice(0, 3).join(', ') || 'LOCATION').toUpperCase()
                 };
             });
-        } catch (e) {
-            return [];
-        }
+        } catch (e) { return []; }
     }
 
     async function buscarUbicacionesOnline() {
@@ -700,34 +563,20 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!queryOriginal || !listMapResults) return;
 
         if (window.reproducirSonido) window.reproducirSonido('menu_select.wav');
-        if (inputMapSearch) inputMapSearch.blur(); // Cerrar teclado móvil para evitar saltos de pantalla
+        if (inputMapSearch) inputMapSearch.blur();
         listMapResults.style.display = 'block';
-        listMapResults.innerHTML = `<li style="padding: 6px 8px; font-size: 0.7rem; color: var(--verde-pipboy);">> SCANNING "${queryOriginal.toUpperCase()}"...</li>`;
+        listMapResults.innerHTML = `<li style="padding: 6px 8px; font-size: 0.7rem; color: var(--verde-nukeboy);">> SCANNING "${queryOriginal.toUpperCase()}"...</li>`;
 
         try {
-            const queryNormalizada = queryOriginal.replace(/periplaza/gi, 'peri plaza');
-
             const [resNom1, resPhoton1] = await Promise.all([
-                consultarNominatim(queryNormalizada),
-                consultarPhotonOSM(queryNormalizada)
+                consultarNominatim(queryOriginal),
+                consultarPhotonOSM(queryOriginal)
             ]);
 
             let combinados = [...resNom1, ...resPhoton1];
 
-            const querySinNumeros = queryNormalizada.replace(/#\s*\d+[a-zA-Z]?|\b\d{2,6}\b/g, ' ').replace(/\s+/g, ' ').trim();
-            if (combinados.length === 0 && querySinNumeros.length >= 4 && querySinNumeros !== queryNormalizada) {
-                const [resNomSinNum, resPhotonSinNum] = await Promise.all([
-                    consultarNominatim(querySinNumeros),
-                    consultarPhotonOSM(querySinNumeros)
-                ]);
-                combinados = [...resNomSinNum, ...resPhotonSinNum].map(r => ({
-                    ...r,
-                    nombre: `${r.nombre} [STREET]`
-                }));
-            }
-
             if (combinados.length === 0) {
-                listMapResults.innerHTML = `<li style="padding: 6px 8px; font-size: 0.7rem; color: #ffcc00;">> NO MATCH FOUND. TRY "STREET, COLONIA, PUEBLA" OR TAP MAP.</li>`;
+                listMapResults.innerHTML = `<li style="padding: 6px 8px; font-size: 0.7rem; color: var(--ambar-nukeboy);">> NO MATCH FOUND. TRY MORE KEYWORDS OR TAP MAP.</li>`;
                 return;
             }
 
@@ -735,64 +584,40 @@ document.addEventListener('DOMContentLoaded', () => {
             combinados.forEach(item => {
                 if (isNaN(item.lat) || isNaN(item.lon)) return;
                 const yaExiste = unicos.some(u => calcularDistanciaKM(u.lat, u.lon, item.lat, item.lon) < 0.08);
-                if (!yaExiste) {
-                    unicos.push({
-                        ...item,
-                        distKM: calcularDistanciaKM(currentLat, currentLon, item.lat, item.lon)
-                    });
-                }
+                if (!yaExiste) unicos.push({ ...item, distKM: calcularDistanciaKM(currentLat, currentLon, item.lat, item.lon) });
             });
 
             unicos.sort((a, b) => a.distKM - b.distKM);
-
             listMapResults.innerHTML = '';
+
             unicos.slice(0, 8).forEach(item => {
                 const li = document.createElement('li');
                 li.style.cssText = 'padding: 6px 8px; font-size: 0.7rem; border-bottom: 1px dotted var(--verde-oscuro); cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 8px;';
                 li.innerHTML = `
                     <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;">> ${item.nombre}</span>
-                    <span style="color: #ffcc00; font-weight: bold; flex-shrink: 0;">[ ${formatearDistancia(item.distKM)} ]</span>
+                    <span style="color: var(--ambar-nukeboy); font-weight: bold; flex-shrink: 0;">[ ${formatearDistancia(item.distKM)} ]</span>
                 `;
-
                 li.addEventListener('click', () => {
                     const nombreCorto = item.nombre.split(',')[0];
-                    mostrarConfirmacionMapa(
-                        'SET ROUTE TARGET?',
-                        `Trace route to ${nombreCorto} (${formatearDistancia(item.distKM)})?`,
-                        () => {
-                            listMapResults.style.display = 'none';
-                            inputMapSearch.value = nombreCorto;
-                            trazarRutaHaciaDestino(item.lat, item.lon, nombreCorto);
-                        }
-                    );
+                    mostrarConfirmacionMapa('SET ROUTE TARGET?', `Trace route to ${nombreCorto} (${formatearDistancia(item.distKM)})?`, () => {
+                        listMapResults.style.display = 'none';
+                        inputMapSearch.value = nombreCorto;
+                        trazarRutaHaciaDestino(item.lat, item.lon, nombreCorto);
+                    });
                 });
-
                 listMapResults.appendChild(li);
             });
-
         } catch (err) {
-            listMapResults.innerHTML = `<li style="padding: 6px 8px; font-size: 0.7rem; color: #ffcc00;">> SATELLITE SEARCH ERROR. CHECK CONNECTION.</li>`;
+            listMapResults.innerHTML = `<li style="padding: 6px 8px; font-size: 0.7rem; color: var(--ambar-nukeboy);">> SATELLITE SEARCH ERROR. CHECK CONNECTION.</li>`;
         }
     }
 
-    if (btnMapSearch) {
-        btnMapSearch.addEventListener('click', buscarUbicacionesOnline);
-    }
-    if (inputMapSearch) {
-        inputMapSearch.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                buscarUbicacionesOnline();
-            }
-        });
-    }
+    if (btnMapSearch) btnMapSearch.addEventListener('click', buscarUbicacionesOnline);
+    if (inputMapSearch) inputMapSearch.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); buscarUbicacionesOnline(); } });
 
-    // ==========================================
-    // 5. ESTADOS DE RED Y ACTUALIZACIÓN GPS ESTABLE
-    // ==========================================
     function gestionarEstadoRed() {
         if (!capaOffline) return;
-        const sectorGuardado = localStorage.getItem('pip_last_sector_name') || "MEXICO SECTOR";
+        const sectorGuardado = localStorage.getItem('pip_last_sector_name') || "UNKNOWN SECTOR";
 
         if (!navigator.onLine) {
             if (searchBoxContainer) searchBoxContainer.style.display = 'none';
@@ -802,11 +627,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (tieneMapaDescargado) {
                 if (tituloOffline) tituloOffline.textContent = "[ DOWNLOADED MAP ]";
-                if (subtituloOffline) subtituloOffline.textContent = `MAPA OSM ACTIVO (${totalTilesGuardados} TILES)`;
+                if (subtituloOffline) subtituloOffline.textContent = `OSM ACTIVE (${totalTilesGuardados} TILES)`;
                 if (displayUbicacion) displayUbicacion.textContent = `${sectorGuardado} [DOWNLOADED MAP]`;
             } else {
                 if (tituloOffline) tituloOffline.textContent = "[ OFFLINE CACHE MODE ]";
-                if (subtituloOffline) subtituloOffline.textContent = "MOSTRANDO SECTORES GUARDADOS EN CACHÉ...";
+                if (subtituloOffline) subtituloOffline.textContent = "SHOWING CACHED SECTORS...";
                 if (displayUbicacion) displayUbicacion.textContent = `${sectorGuardado} [CACHE]`;
             }
         } else {
@@ -817,16 +642,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function obtenerLocalidad(lat, lon) {
-        if (!navigator.onLine) {
-            gestionarEstadoRed();
-            return;
-        }
+        if (!navigator.onLine) { gestionarEstadoRed(); return; }
         try {
-            const respuesta = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=14`, {
-                headers: { 'Accept-Language': 'es' }
-            });
+            const respuesta = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=14`);
             const datos = await respuesta.json();
-            
             if (datos && datos.address) {
                 const ciudad = datos.address.city || datos.address.town || datos.address.municipality || datos.address.village || "";
                 const estado = datos.address.state || datos.address.country || "";
@@ -843,8 +662,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function procesarUbicacionReal(lat, lon) {
-        currentLat = lat;
-        currentLon = lon;
+        currentLat = lat; currentLon = lon;
         localStorage.setItem('pip_last_real_lat', lat.toString());
         localStorage.setItem('pip_last_real_lon', lon.toString());
 
@@ -852,13 +670,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (leafletMap) {
             if (userMarker) userMarker.setLatLng([lat, lon]);
-
-            // Solo mover la cámara si [⌖ ME] está activo y nos movimos más de 3 metros (evita vibración/parpadeo)
             if (seguirUsuarioEnMapa && !buscadorAbierto) {
                 const distCam = (ultimaLatCamara === null) ? 999 : calcularDistanciaKM(ultimaLatCamara, ultimaLonCamara, lat, lon);
                 if (distCam > 0.003) {
-                    ultimaLatCamara = lat;
-                    ultimaLonCamara = lon;
+                    ultimaLatCamara = lat; ultimaLonCamara = lon;
                     moviendoCamaraPorCodigo = true;
                     leafletMap.setView([lat, lon], leafletMap.getZoom(), { animate: false });
                     moviendoCamaraPorCodigo = false;
@@ -874,8 +689,7 @@ document.addEventListener('DOMContentLoaded', () => {
         gestionarEstadoRed();
 
         if (ultimaLatLocalidad === null || Math.abs(lat - ultimaLatLocalidad) > 0.002 || Math.abs(lon - ultimaLonLocalidad) > 0.002) {
-            ultimaLatLocalidad = lat;
-            ultimaLonLocalidad = lon;
+            ultimaLatLocalidad = lat; ultimaLonLocalidad = lon;
             obtenerLocalidad(lat, lon);
         }
     }

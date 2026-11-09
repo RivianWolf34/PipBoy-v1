@@ -1,11 +1,11 @@
 {
-  "name": "Pip-Boy 3000 Mark IV",
-  "short_name": "Pip-Boy",
+  "name": "RivCo Mark I Terminal OS",
+  "short_name": "RivCo OS",
   "start_url": "./index.html",
   "scope": "./",
   "display": "fullscreen",
-  "background_color": "#051005",
-  "theme_color": "#00ff66",
+  "background_color": "#120b04",
+  "theme_color": "#ff9500",
   "orientation": "landscape",
   "icons": [
     {

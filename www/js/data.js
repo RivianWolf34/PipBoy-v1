@@ -17,8 +17,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const inputTarea = document.getElementById('input-tarea');
     const btnAgregarMision = document.getElementById('btn-agregar-mision');
     const listaTareas = document.getElementById('lista-tareas');
-    const STORAGE_KEY = 'pipboy_quests_v1';
-    const STORAGE_RECS_KEY = 'pipboy_reminders_v1';
+    const STORAGE_KEY = 'nukeboy_quests_v1';
+    const STORAGE_RECS_KEY = 'nukeboy_reminders_v1';
 
     let misiones = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
     let recordatorios = JSON.parse(localStorage.getItem(STORAGE_RECS_KEY)) || [];
@@ -78,8 +78,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function dispararSecuenciaAlarma(textoAlerta) {
-        if (window.AndroidPipBoy && typeof window.AndroidPipBoy.dispararAlarmaNativa === 'function') {
-            window.AndroidPipBoy.dispararAlarmaNativa(textoAlerta);
+        if (window.AndroidNukeboy && typeof window.AndroidNukeboy.dispararAlarmaNativa === 'function') {
+            window.AndroidNukeboy.dispararAlarmaNativa(textoAlerta);
         } else if (typeof window.reproducirSonido === 'function') {
             window.reproducirSonido('levelup.wav', 8.0);
             let pulsos = 1;
@@ -108,16 +108,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         banner.innerHTML = `
             <span style="color:#ffcc00; font-size:1.1rem; font-weight:bold; letter-spacing:2px;">[ ! SYS.ALERT TRIGGERED ! ]</span>
-            <span style="color:var(--verde-pipboy); font-size:1rem;">> ${textoAlerta}</span>
-            <button id="btn-ack-alert" class="boton-pipboy" style="margin-top:4px; padding:6px 16px; border-color:#ffcc00; color:#ffcc00;">[ ACKNOWLEDGE ]</button>
+            <span style="color:var(--verde-nukeboy); font-size:1rem;">> ${textoAlerta}</span>
+            <button id="btn-ack-alert" class="boton-nukeboy" style="margin-top:4px; padding:6px 16px; border-color:#ffcc00; color:#ffcc00;">[ ACKNOWLEDGE ]</button>
         `;
 
         banner.querySelector('#btn-ack-alert').addEventListener('click', () => {
             if (intervaloRepeticionAlarma) clearInterval(intervaloRepeticionAlarma);
-            if (window.AndroidPipBoy && typeof window.AndroidPipBoy.detenerAlarmaNativa === 'function') {
-                window.AndroidPipBoy.detenerAlarmaNativa();
-            } else if (window.AndroidPipBoy && typeof window.AndroidPipBoy.detenerAlarmaNativaJS === 'function') {
-                window.AndroidPipBoy.detenerAlarmaNativaJS();
+            if (window.AndroidNukeboy && typeof window.AndroidNukeboy.detenerAlarmaNativa === 'function') {
+                window.AndroidNukeboy.detenerAlarmaNativa();
+            } else if (window.AndroidNukeboy && typeof window.AndroidNukeboy.detenerAlarmaNativaJS === 'function') {
+                window.AndroidNukeboy.detenerAlarmaNativaJS();
             }
             if (window.reproducirSonido) window.reproducirSonido('menu_ok.wav');
             banner.remove();

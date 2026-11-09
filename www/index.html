@@ -7,10 +7,10 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Pip-Boy OS</title>
+    <title>RivCo Terminal OS</title>
     
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#0a120b">
+    <meta name="theme-color" content="#120c05">
     <link rel="stylesheet" href="css/styles.css">
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -39,14 +39,14 @@
     <div id="splash-screen" class="splash-container">
         <div class="splash-content">
             <div id="splash-static-header">
-                <p class="sys-texto" style="color: var(--ambar-pipboy); font-weight: bold;">> RivCo Industries Unified Operating System</p>
+                <p class="sys-texto" style="color: var(--ambar-nukeboy); font-weight: bold;">> RivCo Industries Unified Operating System</p>
                 <p class="sys-texto">> Copyright 2026-2100 RivCo Industries</p>
                 <p class="sys-texto">> - Server 1 -</p>
-                <p class="sys-texto" style="color: var(--ambar-pipboy);">> Nuke-Boy 3000 Mark I OS v2.5.0</p>
+                <p class="sys-texto" style="color: var(--ambar-nukeboy);">> Mark I Tactical Terminal OS v2.6.0</p>
             </div>
             <pre id="splash-typewriter-box" class="sys-texto" style="display: none; text-align: left; width: 100%; max-width: 680px; min-height: 160px; white-space: pre-wrap; margin-top: 10px;"></pre>
             <br>
-            <button id="btn-init-os" class="boton-pipboy" style="font-size: 1.2rem; padding: 10px 20px;">
+            <button id="btn-init-os" class="boton-nukeboy" style="font-size: 1.2rem; padding: 10px 20px;">
                 [ START OS ]
             </button>
         </div>
@@ -55,41 +55,43 @@
     <div class="crt-overlay"></div>
     <div class="scanlines"></div>
 
-    <main class="pip-boy-pantalla">
+    <main class="pip-nuke-pantalla">
         
+        <!-- NAVEGACIÓN LATERAL IZQUIERDA (SYS, LOG, NAV, COM) -->
         <nav class="pip-nav">
-            <button class="nav-btn activo" data-target="stats-modulo">STATS</button>
-            <button class="nav-btn" data-target="data-modulo">DATA</button>
-            <button class="nav-btn" data-target="map-modulo">MAP</button>
-            <button class="nav-btn" data-target="radio-modulo">RADIO</button>
+            <button class="nav-btn activo" data-target="stats-modulo">SYS</button>
+            <button class="nav-btn" data-target="data-modulo">LOG</button>
+            <button class="nav-btn" data-target="map-modulo">NAV</button>
+            <button class="nav-btn" data-target="radio-modulo">COM</button>
         </nav>
 
         <div class="pip-contenido">
             
             <!-- ==========================================
-                 MÓDULO 1: STATS (STATUS + SKILLS)
+                 MÓDULO 1: SYS (STATUS + SKILLS + GAMES + CFG)
             ========================================== -->
             <section id="stats-modulo" class="pip-modulo activo">
                 
-                <div class="pip-subnav" style="border-bottom: 1px solid var(--verde-oscuro); margin-bottom: 0.5vh; padding: 0.2vh 1vw 0.5vh 1vw; display: flex; align-items: center;">
+                <div class="pip-subnav" style="border-bottom: 1px solid var(--verde-oscuro); margin-bottom: 0.5vh; padding: 0.2vh 1vw 0.4vh 1vw; display: flex; align-items: center;">
                     <span id="tab-stats-status" class="subnav-item activo" style="cursor: pointer;">STATUS</span>
                     <span id="tab-stats-skills" class="subnav-item" style="cursor: pointer;">SKILLS</span>
-                    <span class="subnav-item" style="opacity: 0.35;">SYS.LOG</span>
+                    <span id="tab-stats-games" class="subnav-item" style="cursor: pointer;">GAMES</span>
+                    <span id="tab-stats-config" class="subnav-item" style="cursor: pointer;">CFG</span>
                     <div style="margin-left: auto; display: flex; gap: 6px; align-items: center;">
-                        <button id="btn-toggle-cal" class="chrono-btn" style="padding: 3px 8px; font-size: 0.7rem; font-weight: bold;" title="CALIBRADOR DE BRÚJULA">[ ⚙ CAL ]</button>
-                        <button id="btn-flashlight" class="chrono-btn" style="padding: 3px 10px; font-size: 0.7rem; font-weight: bold;">[ ☼ LIGHT: OFF ]</button>
+                        <button id="btn-toggle-cal" class="chrono-btn" style="padding: 3px 8px; font-size: 0.68rem; font-weight: bold;" title="CALIBRADOR DE BRÚJULA">[ ⚙ CAL ]</button>
+                        <button id="btn-flashlight" class="chrono-btn" style="padding: 3px 10px; font-size: 0.68rem; font-weight: bold;">[ ☼ LIGHT: OFF ]</button>
                     </div>
                 </div>
 
-                <!-- PANEL DESPLEGABLE: CALIBRADOR ANÁLOGO (AHORA EN STATS) -->
-                <div id="compass-calibrator-panel" style="display: none; align-items: center; justify-content: space-between; gap: 10px; background: rgba(5, 22, 7, 0.96); border: 1px solid var(--ambar-pipboy); padding: 5px 10px; margin: 0 1vw 5px 1vw; box-shadow: 0 0 12px rgba(255, 204, 0, 0.2); z-index: 50; flex-shrink: 0;">
+                <!-- PANEL DESPLEGABLE: CALIBRADOR ANÁLOGO -->
+                <div id="compass-calibrator-panel" style="display: none; align-items: center; justify-content: space-between; gap: 10px; background: rgba(12, 8, 3, 0.96); border: 1px solid var(--ambar-nukeboy); padding: 5px 10px; margin: 0 1vw 5px 1vw; box-shadow: 0 0 12px var(--ambar-oscuro); z-index: 50; flex-shrink: 0;">
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <div id="synth-wheel-housing" title="DESLIZA ARRIBA/ABAJO PARA CALIBRAR">
                             <div id="synth-wheel-ridges"></div>
                             <div id="synth-wheel-center-line"></div>
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 2px;">
-                            <span id="cal-mode-label" style="font-size: 0.6rem; color: var(--ambar-pipboy);">DEC: WAIT GPS</span>
+                            <span id="cal-mode-label" style="font-size: 0.6rem; color: var(--ambar-nukeboy);">DEC: WAIT GPS</span>
                             <span id="cal-raw-display" style="font-size: 0.7rem; font-weight: bold;">HDG: 000.0°</span>
                             <span id="cal-side-label" style="font-size: 0.55rem; opacity: 0.75;">TOP EDGE: AUTO</span>
                         </div>
@@ -98,10 +100,10 @@
                         <div class="cal-digit-box" data-step="100"><button class="cal-step-btn up">▲</button><span class="cal-digit-val" id="cal-d-100">0</span><button class="cal-step-btn down">▼</button></div>
                         <div class="cal-digit-box" data-step="10"><button class="cal-step-btn up">▲</button><span class="cal-digit-val" id="cal-d-10">0</span><button class="cal-step-btn down">▼</button></div>
                         <div class="cal-digit-box" data-step="1"><button class="cal-step-btn up">▲</button><span class="cal-digit-val" id="cal-d-1">0</span><button class="cal-step-btn down">▼</button></div>
-                        <span style="font-size: 1.1rem; font-weight: bold; padding: 0 1px; color: var(--ambar-pipboy);">.</span>
+                        <span style="font-size: 1.1rem; font-weight: bold; padding: 0 1px; color: var(--ambar-nukeboy);">.</span>
                         <div class="cal-digit-box" data-step="0.1"><button class="cal-step-btn up">▲</button><span class="cal-digit-val" id="cal-d-01">0</span><button class="cal-step-btn down">▼</button></div>
                         <div class="cal-digit-box" data-step="0.01"><button class="cal-step-btn up">▲</button><span class="cal-digit-val" id="cal-d-001">0</span><button class="cal-step-btn down">▼</button></div>
-                        <span style="font-size: 0.9rem; font-weight: bold; margin-left: 2px; color: var(--ambar-pipboy);">°</span>
+                        <span style="font-size: 0.9rem; font-weight: bold; margin-left: 2px; color: var(--ambar-nukeboy);">°</span>
                     </div>
                     <div style="display: flex; flex-direction: column; gap: 3px;">
                         <button id="btn-cal-auto-dec" class="chrono-btn" style="padding: 2px 6px; font-size: 0.58rem;">[ AUTO DEC ]</button>
@@ -122,6 +124,7 @@
                     </div>
                 </div>
 
+                <!-- SUB-PESTAÑA 1: STATUS -->
                 <div id="panel-status" class="stats-main-grid">
                     
                     <div class="vb-reticle">
@@ -178,7 +181,7 @@
                                         <span class="widget-value ticker-content" id="aire-rads">SCANNING...</span>
                                     </div>
                                 </div>
-                                <div class="rad-meter-vertical">
+                                <div class="rad-meter-vertical" title="Segmented RAD Level">
                                     <div class="rad-fill" id="rad-barra-fill"></div>
                                 </div>
                             </div>
@@ -204,19 +207,19 @@
                     </div>
                 </div>
 
-                <!-- PANEL SKILLS (RPG ATTRIBUTES: 2 COLUMNAS) -->
+                <!-- SUB-PESTAÑA 2: SKILLS -->
                 <div id="panel-skills" style="display: none; width: 100%; flex: 1; min-height: 0; padding: 0.5vh 1vw; gap: 1.5vw; box-sizing: border-box; overflow: hidden;">
                     
-                    <div style="flex: 1.05; display: flex; flex-direction: column; justify-content: space-between; background: rgba(15,79,22,0.14); border: 1px solid var(--verde-oscuro); padding: 8px 10px; min-width: 0;">
+                    <div style="flex: 1.05; display: flex; flex-direction: column; justify-content: space-between; background: rgba(0,0,0,0.35); border: 1px solid var(--verde-oscuro); padding: 8px 10px; min-width: 0;">
                         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed var(--verde-oscuro); padding-bottom: 4px; margin-bottom: 6px; flex-shrink: 0;">
-                            <span style="font-size: 0.75rem; font-weight: bold; color: #ffcc00;">> S.D.C.I.W.C. CORE ATTRIBUTES</span>
+                            <span style="font-size: 0.75rem; font-weight: bold; color: var(--ambar-nukeboy);">> S.D.C.I.W.C. CORE ATTRIBUTES</span>
                             <span style="font-size: 0.62rem; opacity: 0.8;">DECAY: -1 PT / 3 DAYS IDLE</span>
                         </div>
                         <div id="skills-bars-row" style="flex: 1; display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; align-items: stretch; min-height: 0;"></div>
                     </div>
 
-                    <div style="flex: 1.15; display: flex; flex-direction: column; border: 1px solid var(--verde-pipboy); background: rgba(3,12,4,0.92); padding: 8px 10px; overflow-y: auto; min-width: 0;">
-                        <div style="font-weight: bold; border-bottom: 1px dashed var(--verde-oscuro); padding-bottom: 4px; margin-bottom: 6px; font-size: 0.75rem; color: #ffcc00; flex-shrink: 0;">> ATTRIBUTE TRAINING LOG (WHAT COUNTS?)</div>
+                    <div style="flex: 1.15; display: flex; flex-direction: column; border: 1px solid var(--verde-nukeboy); background: rgba(0,0,0,0.55); padding: 8px 10px; overflow-y: auto; min-width: 0;">
+                        <div style="font-weight: bold; border-bottom: 1px dashed var(--verde-oscuro); padding-bottom: 4px; margin-bottom: 6px; font-size: 0.75rem; color: var(--ambar-nukeboy); flex-shrink: 0;">> ATTRIBUTE TRAINING LOG (WHAT COUNTS?)</div>
                         <table class="skills-ref-table">
                             <thead>
                                 <tr>
@@ -254,31 +257,144 @@
                     </div>
                 </div>
 
-                <div class="pip-bottom-hud">
-                    <div class="hud-box hud-loc" style="flex: 1.2; display: flex; gap: 8px; align-items: center; overflow: hidden; white-space: nowrap;">
-                        <span class="hud-amber-label">SENSOR LOC:</span>
-                        <span id="sensor-location" style="color: var(--verde-pipboy); font-weight: bold; overflow: hidden; text-overflow: ellipsis; font-size: 0.8rem;"> </span>
-                    </div>
-                    <div class="hud-box hud-pwr" style="flex: 1; display: flex; gap: 8px; align-items: center;">
-                        <span class="hud-amber-label">PWR [AC]</span>
-                        <div class="pip-level-bar" style="flex: 1; min-width: 40px; height: 12px; padding: 1px;">
-                            <div class="pip-level-fill" style="width: 100%;"></div>
+                <!-- SUB-PESTAÑA 3: GAMES (SIMÓN DICE TÁCTICO + GATO DE 3 FICHAS) -->
+                <div id="panel-games" style="display: none; width: 100%; flex: 1; min-height: 0; padding: 0.5vh 1vw; gap: 1.2vw; box-sizing: border-box; overflow: hidden;">
+                    
+                    <!-- Columna izquierda: Selector de Juego y Config de Partida -->
+                    <div style="flex: 0 0 38%; display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--verde-oscuro); background: rgba(0,0,0,0.4); padding: 8px 10px; overflow-y: auto;">
+                        <span style="font-size: 0.75rem; font-weight: bold; color: var(--ambar-nukeboy); border-bottom: 1px dashed var(--verde-oscuro); padding-bottom: 4px;">> SELECT TACTICAL SUBROUTINE</span>
+                        
+                        <div style="display: flex; gap: 6px;">
+                            <button id="btn-select-game-simon" class="boton-nukeboy activo-game-btn" style="flex: 1; margin: 0; padding: 6px 4px; font-size: 0.7rem;">[1] SIMON-TAC</button>
+                            <button id="btn-select-game-ttt" class="boton-nukeboy" style="flex: 1; margin: 0; padding: 6px 4px; font-size: 0.7rem;">[2] TAC-GRID 3</button>
                         </div>
-                        <span style="font-size: 0.75rem; color: var(--ambar-pipboy);">100%</span>
+
+                        <!-- Controles específicos de SIMON -->
+                        <div id="simon-controls-box" style="display: flex; flex-direction: column; gap: 6px; margin-top: 4px;">
+                            <span style="font-size: 0.65rem; color: var(--ambar-nukeboy);">MODE SELECTION:</span>
+                            <div style="display: flex; gap: 6px;">
+                                <button id="btn-simon-1p" class="chrono-btn activo" style="flex: 1; padding: 5px;">1P SURVIVAL</button>
+                                <button id="btn-simon-2p" class="chrono-btn" style="flex: 1; padding: 5px;">2P DUEL</button>
+                            </div>
+                            <div style="border: 1px solid var(--verde-oscuro); padding: 6px; font-size: 0.68rem; line-height: 1.35;">
+                                <div>> HIGH SCORE (1P): <span id="simon-highscore-val" style="color: var(--ambar-nukeboy); font-weight: bold;">0</span></div>
+                                <div>> CURRENT SEQ: <span id="simon-score-val" style="color: var(--verde-nukeboy); font-weight: bold;">0</span></div>
+                                <div id="simon-status-msg" style="color: var(--ambar-nukeboy); margin-top: 4px;">PRESS [START] TO INIT</div>
+                            </div>
+                            <div style="display: flex; gap: 6px; margin-top: auto;">
+                                <button id="btn-simon-start" class="boton-nukeboy btn-amber-border" style="flex: 1; margin: 0; padding: 6px;">[► START]</button>
+                                <button id="btn-simon-pass" class="boton-nukeboy" style="display: none; flex: 1; margin: 0; padding: 6px;">[PASS TURN]</button>
+                            </div>
+                        </div>
+
+                        <!-- Controles específicos de GATO 3 FICHAS -->
+                        <div id="ttt-controls-box" style="display: none; flex-direction: column; gap: 6px; margin-top: 4px;">
+                            <span style="font-size: 0.65rem; color: var(--ambar-nukeboy);">MODE &amp; AI LEVEL:</span>
+                            <div style="display: flex; gap: 6px;">
+                                <button id="btn-ttt-1p" class="chrono-btn activo" style="flex: 1; padding: 4px;">1P VS AI</button>
+                                <button id="btn-ttt-2p" class="chrono-btn" style="flex: 1; padding: 4px;">2P LOCAL</button>
+                            </div>
+                            <div id="ttt-ai-level-row" style="display: flex; gap: 4px;">
+                                <button data-lvl="easy" class="chrono-btn ttt-lvl-btn" style="flex: 1; padding: 4px; font-size: 0.6rem;">EASY</button>
+                                <button data-lvl="med" class="chrono-btn ttt-lvl-btn activo" style="flex: 1; padding: 4px; font-size: 0.6rem;">MED</button>
+                                <button data-lvl="mil" class="chrono-btn ttt-lvl-btn" style="flex: 1; padding: 4px; font-size: 0.6rem;">MIL-TERM</button>
+                            </div>
+                            <div style="border: 1px solid var(--verde-oscuro); padding: 6px; font-size: 0.66rem; line-height: 1.3;">
+                                <div style="color: var(--ambar-nukeboy);">RULE: MAX 3 TOKENS PER PLAYER. 4TH PLACEMENT ERASES 1ST!</div>
+                                <div id="ttt-status-msg" style="margin-top: 4px; font-weight: bold;">TURN: PLAYER X</div>
+                                <div id="ttt-score-line" style="margin-top: 2px; opacity: 0.85;">X: 0 // O: 0</div>
+                            </div>
+                            <button id="btn-ttt-reset" class="boton-nukeboy btn-amber-border" style="margin: 0; padding: 6px;">[↻ NEW MATCH]</button>
+                        </div>
                     </div>
-                    <div class="hud-box hud-net" style="flex: 0.6; display: flex; justify-content: flex-end; gap: 8px;">
+
+                    <!-- Columna derecha: Tablero Interactivo -->
+                    <div style="flex: 1; display: flex; justify-content: center; align-items: center; border: 1px solid var(--verde-nukeboy); background: rgba(0,0,0,0.65); padding: 8px; position: relative; min-height: 0;">
+                        
+                        <!-- Tablero SIMON -->
+                        <div id="simon-board" class="simon-grid-board">
+                            <button class="simon-pad pad-green" data-pad="0"><span>I</span></button>
+                            <button class="simon-pad pad-amber" data-pad="1"><span>II</span></button>
+                            <button class="simon-pad pad-red" data-pad="2"><span>III</span></button>
+                            <button class="simon-pad pad-blue" data-pad="3"><span>IV</span></button>
+                        </div>
+
+                        <!-- Tablero GATO 3 NIVELES/FICHAS -->
+                        <div id="ttt-board" class="ttt-grid-board" style="display: none;">
+                            <button class="ttt-cell" data-idx="0"></button>
+                            <button class="ttt-cell" data-idx="1"></button>
+                            <button class="ttt-cell" data-idx="2"></button>
+                            <button class="ttt-cell" data-idx="3"></button>
+                            <button class="ttt-cell" data-idx="4"></button>
+                            <button class="ttt-cell" data-idx="5"></button>
+                            <button class="ttt-cell" data-idx="6"></button>
+                            <button class="ttt-cell" data-idx="7"></button>
+                            <button class="ttt-cell" data-idx="8"></button>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- SUB-PESTAÑA 4: CFG (AJUSTES DE PALETA BICOLOR DE LA APP) -->
+                <div id="panel-config" style="display: none; width: 100%; flex: 1; min-height: 0; padding: 0.6vh 1vw; gap: 1.5vw; box-sizing: border-box; overflow: hidden;">
+                    <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid var(--verde-nukeboy); background: rgba(0,0,0,0.45); padding: 10px 14px; overflow-y: auto;">
+                        <div>
+                            <div style="font-size: 0.8rem; font-weight: bold; color: var(--ambar-nukeboy); border-bottom: 1px dashed var(--verde-oscuro); padding-bottom: 4px; margin-bottom: 10px;">
+                                > CRT PHOSPHOR COLOR MATRIX CONFIGURATION
+                            </div>
+                            <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: center; margin-bottom: 12px;">
+                                <label style="display: flex; align-items: center; gap: 10px; font-size: 0.78rem; cursor: pointer;">
+                                    <span>PRIMARY PHOSPHOR:</span>
+                                    <input type="color" id="cfg-color-primary" value="#ff9500" style="width: 42px; height: 28px; background: transparent; border: 1px solid var(--verde-nukeboy); cursor: pointer;">
+                                    <span id="cfg-hex-primary" style="color: var(--verde-nukeboy); font-weight: bold;">#FF9500</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 10px; font-size: 0.78rem; cursor: pointer;">
+                                    <span style="color: var(--ambar-nukeboy);">SECONDARY COMPLEMENT:</span>
+                                    <input type="color" id="cfg-color-secondary" value="#00e5ff" style="width: 42px; height: 28px; background: transparent; border: 1px solid var(--ambar-nukeboy); cursor: pointer;">
+                                    <span id="cfg-hex-secondary" style="color: var(--ambar-nukeboy); font-weight: bold;">#00E5FF</span>
+                                </label>
+                            </div>
+
+                            <div style="font-size: 0.72rem; color: var(--ambar-nukeboy); margin-bottom: 6px;">> QUICK HARDWARE PRESETS:</div>
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                <button class="boton-nukeboy cfg-preset-btn" data-p="#ff9500" data-s="#00e5ff" style="margin: 0; padding: 5px 10px; font-size: 0.68rem;">[ AMBER // CYAN (DEFAULT) ]</button>
+                                <button class="boton-nukeboy cfg-preset-btn" data-p="#ff8000" data-s="#ffe066" style="margin: 0; padding: 5px 10px; font-size: 0.68rem;">[ SOLAR ORANGE // GOLD ]</button>
+                                <button class="boton-nukeboy cfg-preset-btn" data-p="#1df23b" data-s="#ffcc00" style="margin: 0; padding: 5px 10px; font-size: 0.68rem;">[ CLASSIC GREEN // AMBER ]</button>
+                                <button class="boton-nukeboy cfg-preset-btn" data-p="#00e5ff" data-s="#ff9500" style="margin: 0; padding: 5px 10px; font-size: 0.68rem;">[ CYBER CYAN // ORANGE ]</button>
+                            </div>
+                        </div>
+
+                        <div style="border-top: 1px dashed var(--verde-oscuro); padding-top: 6px; font-size: 0.68rem; opacity: 0.85; display: flex; justify-content: space-between;">
+                            <span>> FONT: SHARE TECH MONO [LOCKED]</span>
+                            <span>> STORAGE: LOCAL PERSISTENT</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- HUD INFERIOR DE SYS (CON UBICACIÓN AMPLIADA Y BARRA SEGMENTADA COMPACTA) -->
+                <div class="pip-bottom-hud">
+                    <div class="hud-box hud-loc" style="flex: 2.1; display: flex; gap: 6px; align-items: center; overflow: hidden; white-space: nowrap; min-width: 0;">
+                        <span class="hud-amber-label">LOC:</span>
+                        <span id="sensor-location" style="color: var(--verde-nukeboy); font-weight: bold; overflow: hidden; text-overflow: ellipsis; font-size: 0.8rem;">SCANNING...</span>
+                    </div>
+                    <div class="hud-box hud-pwr" style="flex: 0.85; display: flex; gap: 6px; align-items: center; justify-content: center;">
+                        <span class="hud-amber-label" id="pwr-label-txt">PWR [AC]</span>
+                        <span id="pwr-ascii-bar" class="ascii-segmented-bar" style="font-size: 0.72rem; letter-spacing: 0px;">[█████]</span>
+                        <span id="pwr-pct-txt" style="font-size: 0.75rem; color: var(--ambar-nukeboy);">100%</span>
+                    </div>
+                    <div class="hud-box hud-net" style="flex: 0.55; display: flex; justify-content: flex-end; gap: 5px;">
                         <span class="hud-amber-label">NET:</span>
-                        <span style="font-size: 0.75rem;">4G // 10Mb</span>
+                        <span id="net-status-txt" style="font-size: 0.72rem; white-space: nowrap;">ONLINE</span>
                     </div>
                 </div>
             </section>
 
             <!-- ==========================================
-                 MÓDULO 2: DATA (SUBPESTAÑAS QUESTS Y ALERTS)
+                 MÓDULO 2: LOG (SUBPESTAÑAS QUESTS Y ALERTS)
             ========================================== -->
             <section id="data-modulo" class="pip-modulo">
                 
-                <div class="pip-subnav" style="border-bottom: 1px solid var(--verde-oscuro); margin-bottom: 0.5vh; padding: 0.2vh 1vw 0.5vh 1vw;">
+                <div class="pip-subnav" style="border-bottom: 1px solid var(--verde-oscuro); margin-bottom: 0.5vh; padding: 0.2vh 1vw 0.4vh 1vw;">
                     <span id="tab-data-quests" class="subnav-item activo" style="cursor: pointer;">QUESTS</span>
                     <span id="tab-data-alerts" class="subnav-item" style="cursor: pointer;">ALERTS</span>
                 </div>
@@ -287,21 +403,21 @@
                 <div id="panel-data-quests" class="data-two-columns" style="display: flex;">
                     <div class="data-col-left">
                         <div class="data-panel-box">
-                            <p class="sys-texto panel-amber-title">> NEW QUEST ENTRY</p>
+                            <p class="sys-texto panel-amber-title">> NEW LOG ENTRY</p>
                             <div class="data-input-contenedor" style="display: flex; gap: 10px; align-items: center;">
-                                <span class="prompt-flecha" style="color: var(--ambar-pipboy); font-weight: bold;">></span>
-                                <input type="text" id="input-tarea" placeholder="AÑADIR NUEVA MISIÓN..." autocomplete="off" style="flex: 1; background: transparent; border: none; border-bottom: 1px solid var(--verde-pipboy); color: var(--verde-pipboy); outline: none; padding: 6px 4px; font-family: inherit;">
-                                <button id="btn-agregar-mision" class="boton-pipboy btn-amber-border" style="padding: 4px 12px; margin: 0;">[+]</button>
+                                <span class="prompt-flecha" style="color: var(--ambar-nukeboy); font-weight: bold;">></span>
+                                <input type="text" id="input-tarea" placeholder="AÑADIR NUEVA MISIÓN..." autocomplete="off" style="flex: 1; background: transparent; border: none; border-bottom: 1px solid var(--verde-nukeboy); color: var(--verde-nukeboy); outline: none; padding: 6px 4px; font-family: inherit;">
+                                <button id="btn-agregar-mision" class="boton-nukeboy btn-amber-border" style="padding: 4px 12px; margin: 0;">[+]</button>
                             </div>
                         </div>
                         <div class="data-panel-box" style="margin-top: auto;">
-                            <p class="sys-texto" style="margin-bottom: 6px; font-size: 0.75rem;">> MEMORY STATUS: <span id="data-stats-count" style="color: var(--ambar-pipboy); font-weight: bold;">0 ACTIVE</span></p>
+                            <p class="sys-texto" style="margin-bottom: 6px; font-size: 0.75rem;">> MEMORY STATUS: <span id="data-stats-count" style="color: var(--ambar-nukeboy); font-weight: bold;">0 ACTIVE</span></p>
                             <p class="sys-texto" style="margin: 0; font-size: 0.75rem; opacity: 0.7;">> SECURE STORAGE // OK</p>
                         </div>
                     </div>
                     <div class="data-col-right">
                         <div class="data-list-section">
-                            <div class="data-section-header">ACTIVE QUESTS</div>
+                            <div class="data-section-header">ACTIVE LOGS</div>
                             <ul id="lista-tareas" class="lista-quests"></ul>
                         </div>
                     </div>
@@ -313,16 +429,16 @@
                         <div class="data-panel-box">
                             <p class="sys-texto panel-amber-title">> SET TIME ALERT</p>
                             <div class="rec-input-vertical">
-                                <input type="datetime-local" id="input-rec-fecha" class="input-pipboy-fecha" style="width: 100%; box-sizing: border-box; background: rgba(0, 20, 0, 0.6); border: 1px solid var(--ambar-pipboy); color: var(--ambar-pipboy); padding: 6px 8px; font-family: inherit;">
+                                <input type="datetime-local" id="input-rec-fecha" class="input-nukeboy-fecha" style="width: 100%; box-sizing: border-box; background: rgba(0, 0, 0, 0.6); border: 1px solid var(--ambar-nukeboy); color: var(--ambar-nukeboy); padding: 6px 8px; font-family: inherit;">
                                 <div style="display: flex; gap: 8px; align-items: center; margin-top: 10px;">
-                                    <span class="prompt-flecha" style="color: var(--ambar-pipboy); font-weight: bold;">></span>
-                                    <input type="text" id="input-rec-texto" placeholder="ASUNTO DE ALARMA..." autocomplete="off" style="flex: 1; background: transparent; border: none; border-bottom: 1px solid var(--verde-pipboy); color: var(--verde-pipboy); outline: none; padding: 6px 4px; font-family: inherit;">
-                                    <button id="btn-add-rec" class="boton-pipboy btn-amber-border" style="margin: 0; padding: 4px 12px;">[+]</button>
+                                    <span class="prompt-flecha" style="color: var(--ambar-nukeboy); font-weight: bold;">></span>
+                                    <input type="text" id="input-rec-texto" placeholder="ASUNTO DE ALARMA..." autocomplete="off" style="flex: 1; background: transparent; border: none; border-bottom: 1px solid var(--verde-nukeboy); color: var(--verde-nukeboy); outline: none; padding: 6px 4px; font-family: inherit;">
+                                    <button id="btn-add-rec" class="boton-nukeboy btn-amber-border" style="margin: 0; padding: 4px 12px;">[+]</button>
                                 </div>
                             </div>
                         </div>
                         <div class="data-panel-box" style="margin-top: auto;">
-                            <p class="sys-texto" style="margin-bottom: 6px; font-size: 0.75rem;">> ALERT MONITOR: <span id="data-alerts-count" style="color: var(--ambar-pipboy); font-weight: bold;">0 SCHEDULED</span></p>
+                            <p class="sys-texto" style="margin-bottom: 6px; font-size: 0.75rem;">> ALERT MONITOR: <span id="data-alerts-count" style="color: var(--ambar-nukeboy); font-weight: bold;">0 SCHEDULED</span></p>
                             <p class="sys-texto" style="margin: 0; font-size: 0.75rem; opacity: 0.7;">> BACKGROUND WAKE // ARMED</p>
                         </div>
                     </div>
@@ -335,18 +451,17 @@
                 </div>
 
                 <div class="pip-map-bottom-hud">
-                    <div class="map-hud-box map-coords" id="data-mode-label" style="color: var(--ambar-pipboy);">SYS.SEC // QUEST-LOG</div>
+                    <div class="map-hud-box map-coords" id="data-mode-label" style="color: var(--ambar-nukeboy);">SYS.SEC // QUEST-LOG</div>
                     <div class="map-hud-box map-time" id="data-hora-display">00:00:00</div>
                     <div class="map-hud-box map-location"><span class="hud-amber-label" style="margin-right: 5px;">STATUS:</span> ACTIVE</div>
                 </div>
             </section>
 
             <!-- ==========================================
-                 MÓDULO 3: MAP (RADAR, WAYPOINTS Y TRAIL)
+                 MÓDULO 3: NAV (RADAR, WAYPOINTS Y TRAIL)
             ========================================== -->
             <section id="map-modulo" class="pip-modulo">
                 
-                <!-- 1. SUB-MENÚ DE NAVEGACIÓN + DISTANCIAS DE WAYPOINTS A LA DERECHA -->
                 <div class="pip-subnav" style="border-bottom: 1px solid var(--verde-oscuro); margin-bottom: 0.4vh; padding: 0.2vh 1vw 0.4vh 1vw; display: flex; align-items: center;">
                     <span id="tab-local-map" class="subnav-item activo" style="cursor:pointer;">RADAR</span>
                     <span id="tab-waypoints" class="subnav-item" style="cursor:pointer;">WAYPOINTS</span>
@@ -354,7 +469,6 @@
                     <div id="waypoints-distances-container" style="display: flex; gap: 8px; font-size: 0.68rem; font-weight: bold; align-items: center; overflow: hidden; margin-left: auto;"></div>
                 </div>
                 
-                <!-- 2. BRÚJULA LIMPIA (SIN BOTONES ENCIMA) -->
                 <div style="width: 100%; position: relative; margin-bottom: 0.5vh; flex-shrink: 0; padding: 0 1vw;">
                     <div class="pip-compass-container">
                         <div class="compass-top-bar"><div class="compass-center-pointer">▼</div></div>
@@ -364,31 +478,26 @@
                     </div>
                 </div>
 
-                <!-- 3. PANELES DINÁMICOS -->
-                <!-- SUB-PESTAÑA 1: RADAR (CON BARRA SUPERIOR PLEGABLE Y SIDEBAR LATERAL DE CONTROLES) -->
-                <div id="panel-local-map" style="display: flex; flex-direction: column; position: relative; width: 100%; flex: 1; border: 1px solid var(--verde-pipboy); z-index: 5; min-height: 0; background: #051005; overflow: hidden;">
+                <!-- SUB-PESTAÑA 1: RADAR -->
+                <div id="panel-local-map" style="display: flex; flex-direction: column; position: relative; width: 100%; flex: 1; border: 1px solid var(--verde-nukeboy); z-index: 5; min-height: 0; background: #050505; overflow: hidden;">
                     
-                    <!-- BARRA DE BÚSQUEDA (FUERA DEL LIENZO DEL MAPA PARA EVITAR PARPADEO) -->
-                    <div id="map-online-search-box" style="display: none; flex-direction: column; width: 100%; background: rgba(3, 15, 4, 0.98); border-bottom: 1px solid var(--ambar-pipboy); z-index: 30; flex-shrink: 0;">
+                    <div id="map-online-search-box" style="display: none; flex-direction: column; width: 100%; background: rgba(10, 8, 4, 0.98); border-bottom: 1px solid var(--ambar-nukeboy); z-index: 30; flex-shrink: 0;">
                         <div style="display: flex; gap: 6px; align-items: center; padding: 4px 8px;">
-                            <span style="font-size: 0.75rem; color: var(--ambar-pipboy); font-weight: bold;">⌖</span>
-                            <input type="text" id="input-map-search" placeholder="SEARCH STREET, COLONIA OR PLACE..." autocomplete="off" style="flex: 1; background: transparent; border: none; color: var(--verde-pipboy); font-size: 0.74rem; outline: none; min-width: 0;" />
+                            <span style="font-size: 0.75rem; color: var(--ambar-nukeboy); font-weight: bold;">⌖</span>
+                            <input type="text" id="input-map-search" placeholder="SEARCH STREET, ZONE OR PLACE..." autocomplete="off" style="flex: 1; background: transparent; border: none; color: var(--verde-nukeboy); font-size: 0.74rem; outline: none; min-width: 0;" />
                             <button id="btn-map-search" class="chrono-btn btn-amber-accent" style="padding: 3px 8px; font-size: 0.64rem; font-weight: bold; flex-shrink: 0;">[ GO ]</button>
                             <button id="btn-close-map-search" class="chrono-btn" style="padding: 3px 7px; font-size: 0.64rem; flex-shrink: 0;">[ ▲ ]</button>
                         </div>
-                        <ul id="map-search-results" style="display: none; list-style: none; margin: 0; padding: 0; max-height: 115px; overflow-y: auto; background: rgba(2, 12, 3, 0.98); border-top: 1px dashed var(--verde-oscuro);"></ul>
+                        <ul id="map-search-results" style="display: none; list-style: none; margin: 0; padding: 0; max-height: 115px; overflow-y: auto; background: rgba(8, 6, 2, 0.98); border-top: 1px dashed var(--verde-oscuro);"></ul>
                     </div>
 
-                    <!-- CINTILLA DE TELEMETRÍA DE RUTA (FUERA DEL LIENZO DEL MAPA) -->
-                    <div id="map-route-telemetry" style="display: none; width: 100%; justify-content: space-between; align-items: center; background: rgba(20, 16, 0, 0.95); border-bottom: 1px solid var(--ambar-pipboy); color: var(--ambar-pipboy); padding: 3px 10px; font-size: 0.68rem; font-weight: bold; flex-shrink: 0; z-index: 25;">
+                    <div id="map-route-telemetry" style="display: none; width: 100%; justify-content: space-between; align-items: center; background: rgba(20, 16, 0, 0.95); border-bottom: 1px solid var(--ambar-nukeboy); color: var(--ambar-nukeboy); padding: 3px 10px; font-size: 0.68rem; font-weight: bold; flex-shrink: 0; z-index: 25;">
                         <span id="map-route-target-name" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 8px;">> TARGET ACTIVE</span>
-                        <span id="map-route-stats" style="flex-shrink: 0; color: var(--verde-pipboy);">0.0 KM // ~0 MIN</span>
+                        <span id="map-route-stats" style="flex-shrink: 0; color: var(--verde-nukeboy);">0.0 KM // ~0 MIN</span>
                     </div>
 
-                    <!-- CUERPO DEL RADAR: COLUMNA DE BOTONES A LA IZQUIERDA + MAPA A LA DERECHA -->
                     <div style="display: flex; flex: 1; width: 100%; min-height: 0; position: relative;">
                         
-                        <!-- Barra Lateral Táctica de Radar (Recorta un pequeño margen a la izquierda sin tapar el mapa) -->
                         <div class="radar-side-controls">
                             <button id="btn-radar-zoom-in" class="chrono-btn" style="padding: 5px 0; font-size: 0.85rem; font-weight: bold;" title="Acercar">+</button>
                             <button id="btn-radar-zoom-out" class="chrono-btn" style="padding: 5px 0; font-size: 0.85rem; font-weight: bold;" title="Alejar">-</button>
@@ -401,7 +510,6 @@
                             <input type="file" id="input-offline-map" accept=".zip,.pipmap,.geojson,.json" style="display: none;" />
                         </div>
 
-                        <!-- Contenedor del Mapa Leaflet -->
                         <div style="flex: 1; position: relative; height: 100%; min-width: 0;">
                             <div id="leaflet-map-container" style="width: 100%; height: 100%; z-index: 1;"></div>
                             <div id="mapa-offline" class="alerta-parpadeo">
@@ -413,13 +521,13 @@
                     </div>
                 </div>
 
-                <!-- SUB-PESTAÑA 2: WAYPOINTS (CON BOTÓN [+ NAV HERE] INTEGRADO AQUÍ) -->
+                <!-- SUB-PESTAÑA 2: WAYPOINTS -->
                 <div id="panel-waypoints" style="display: none; width: 100%; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; padding: 0.5vh 1vw;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-shrink: 0; gap: 8px; flex-wrap: wrap;">
-                        <span class="widget-label" style="font-size: 0.75rem; color: var(--ambar-pipboy); font-weight: bold;">> STORED LOCATIONS (MAX 4 ACTIVE)</span>
+                        <span class="widget-label" style="font-size: 0.75rem; color: var(--ambar-nukeboy); font-weight: bold;">> STORED LOCATIONS (MAX 4 ACTIVE)</span>
                         <div style="display: flex; gap: 6px; align-items: center;">
-                            <button id="btn-add-waypoint" class="boton-pipboy btn-amber-border" style="padding: 3px 8px; font-size: 0.68rem; margin: 0;" title="Guardar coordenada GPS actual al instante">[+] NAV HERE</button>
-                            <button id="btn-create-waypoint" class="boton-pipboy" style="padding: 3px 8px; font-size: 0.68rem; margin: 0;">[+] NEW WAYPOINT</button>
+                            <button id="btn-add-waypoint" class="boton-nukeboy btn-amber-border" style="padding: 3px 8px; font-size: 0.68rem; margin: 0;" title="Guardar coordenada GPS actual al instante">[+] NAV HERE</button>
+                            <button id="btn-create-waypoint" class="boton-nukeboy" style="padding: 3px 8px; font-size: 0.68rem; margin: 0;">[+] NEW WAYPOINT</button>
                         </div>
                     </div>
                     <div id="waypoints-list-container" style="display: flex; flex-direction: column; gap: 6px; overflow-y: auto; padding-right: 5px; flex: 1; min-height: 0;"></div>
@@ -429,18 +537,18 @@
                 <div id="panel-trail" style="display: none; width: 100%; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; padding: 0.3vh 1vw; gap: 6px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; flex-shrink: 0;">
                         <div style="display: flex; align-items: center; gap: 10px;">
-                            <span id="trail-status-badge" style="font-size: 0.75rem; font-weight: bold; background: rgba(15, 79, 22, 0.4); border: 1px solid var(--verde-oscuro); padding: 2px 6px;">[ STANDBY ]</span>
-                            <span id="trail-distance-display" style="font-size: 0.9rem; font-weight: bold; color: var(--ambar-pipboy);">PATH: 0 M</span>
+                            <span id="trail-status-badge" style="font-size: 0.75rem; font-weight: bold; background: rgba(0, 0, 0, 0.5); border: 1px solid var(--verde-oscuro); padding: 2px 6px;">[ STANDBY ]</span>
+                            <span id="trail-distance-display" style="font-size: 0.9rem; font-weight: bold; color: var(--ambar-nukeboy);">PATH: 0 M</span>
                             <span id="trail-nodes-display" style="font-size: 0.65rem; opacity: 0.75;">PTS: 0</span>
                         </div>
                         <div style="display: flex; align-items: center; gap: 6px;">
-                            <button id="btn-trail-start" class="boton-pipboy" style="margin: 0; padding: 3px 8px; font-size: 0.7rem;">[► START]</button>
-                            <button id="btn-trail-pause" class="boton-pipboy" style="margin: 0; padding: 3px 8px; font-size: 0.7rem;">[❚❚ PAUSE]</button>
-                            <button id="btn-trail-clear" class="boton-pipboy" style="margin: 0; padding: 3px 8px; font-size: 0.7rem;">[✕ CLEAR]</button>
+                            <button id="btn-trail-start" class="boton-nukeboy" style="margin: 0; padding: 3px 8px; font-size: 0.7rem;">[► START]</button>
+                            <button id="btn-trail-pause" class="boton-nukeboy" style="margin: 0; padding: 3px 8px; font-size: 0.7rem;">[❚❚ PAUSE]</button>
+                            <button id="btn-trail-clear" class="boton-nukeboy" style="margin: 0; padding: 3px 8px; font-size: 0.7rem;">[✕ CLEAR]</button>
                         </div>
                     </div>
 
-                    <div style="position: relative; flex: 1; min-height: 0; width: 100%; border: 1px solid var(--verde-pipboy); background: rgba(3, 12, 4, 0.92); overflow: hidden; touch-action: none;">
+                    <div style="position: relative; flex: 1; min-height: 0; width: 100%; border: 1px solid var(--verde-nukeboy); background: rgba(6, 5, 2, 0.92); overflow: hidden; touch-action: none;">
                         <canvas id="trail-canvas" style="width: 100%; height: 100%; display: block; cursor: grab;"></canvas>
                         
                         <div style="position: absolute; top: 8px; left: 8px; display: flex; flex-direction: column; gap: 5px; z-index: 10;">
@@ -450,8 +558,8 @@
                             <button id="btn-trail-fit-all" class="chrono-btn" style="padding: 3px 6px; font-size: 0.62rem;" title="Ver todo el camino">[⛶ FIT]</button>
                         </div>
 
-                        <div id="trail-scale-indicator" style="position: absolute; bottom: 6px; left: 8px; font-size: 0.65rem; background: rgba(0, 15, 0, 0.85); border-bottom: 2px solid var(--ambar-pipboy); border-left: 2px solid var(--ambar-pipboy); border-right: 2px solid var(--ambar-pipboy); color: var(--ambar-pipboy); padding: 2px 8px; pointer-events: none;">GRID: 25 M // SPAN: 150 M</div>
-                        <div id="trail-cam-mode-label" style="position: absolute; top: 6px; right: 8px; font-size: 0.6rem; color: var(--ambar-pipboy); background: rgba(0, 15, 0, 0.75); padding: 1px 5px; pointer-events: none;">N ▲ // MODE: FOLLOW</div>
+                        <div id="trail-scale-indicator" style="position: absolute; bottom: 6px; left: 8px; font-size: 0.65rem; background: rgba(0, 0, 0, 0.85); border-bottom: 2px solid var(--ambar-nukeboy); border-left: 2px solid var(--ambar-nukeboy); border-right: 2px solid var(--ambar-nukeboy); color: var(--ambar-nukeboy); padding: 2px 8px; pointer-events: none;">GRID: 25 M // SPAN: 150 M</div>
+                        <div id="trail-cam-mode-label" style="position: absolute; top: 6px; right: 8px; font-size: 0.6rem; color: var(--ambar-nukeboy); background: rgba(0, 0, 0, 0.75); padding: 1px 5px; pointer-events: none;">N ▲ // MODE: FOLLOW</div>
                     </div>
                 </div>
 
@@ -459,20 +567,20 @@
                 <div class="pip-map-bottom-hud">
                     <div class="map-hud-box map-coords" id="map-gps-display">LAT: WAITING // LON: GPS...</div>
                     <div class="map-hud-box map-time" id="map-hora-display">00:00:00</div>
-                    <div class="map-hud-box map-location" id="map-ubicacion-display" style="color: var(--ambar-pipboy);">WAITING FOR SATELLITE FIX...</div>
+                    <div class="map-hud-box map-location" id="map-ubicacion-display" style="color: var(--ambar-nukeboy);">WAITING FOR SATELLITE FIX...</div>
                 </div>
             </section>
 
             <!-- ==========================================
-                 MÓDULO 4: RADIO (HOLOTAPES & UPLINK)
+                 MÓDULO 4: COM (HOLOTAPES & RADIO)
             ========================================== -->
             <section id="radio-modulo" class="pip-modulo">
                 
                 <input type="file" id="input-carpeta" webkitdirectory directory multiple style="display: none;" />
                 <input type="file" id="input-archivos-movil" accept="audio/*" multiple style="display: none;" />
-                <audio id="audio-pipboy" style="display: none;"></audio>
+                <audio id="audio-nukeboy" style="display: none;"></audio>
 
-                <div class="pip-subnav" style="border-bottom: 1px solid var(--verde-oscuro); margin-bottom: 0.5vh; padding: 0.2vh 1vw 0.5vh 1vw;">
+                <div class="pip-subnav" style="border-bottom: 1px solid var(--verde-oscuro); margin-bottom: 0.5vh; padding: 0.2vh 1vw 0.4vh 1vw;">
                     <span id="tab-holotapes" class="subnav-item activo" style="cursor:pointer;">HOLOTAPES</span>
                     <span id="tab-uplink" class="subnav-item" style="cursor:pointer;">RADIO</span>
                 </div>
@@ -482,40 +590,44 @@
                     
                     <div style="flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0;">
                         <div style="display: flex; gap: 8px; width: 100%;">
-                            <button id="btn-cargar-cinta" class="boton-pipboy btn-amber-border" style="flex: 1; margin: 0; font-size: 0.75rem;">[HOLOTAPE]</button>
-                            <button id="btn-shuffle" class="boton-pipboy" style="flex: 1; margin: 0; font-size: 0.75rem;">[SHUFFLE: OFF]</button>
+                            <button id="btn-cargar-cinta" class="boton-nukeboy btn-amber-border" style="flex: 1; margin: 0; font-size: 0.75rem;">[HOLOTAPE]</button>
+                            <button id="btn-shuffle" class="boton-nukeboy" style="flex: 1; margin: 0; font-size: 0.75rem;">[SHUFFLE: OFF]</button>
                         </div>
 
                         <div style="position: relative; width: 100%;">
-                            <input type="text" id="input-buscar-cancion" placeholder="> SEARCH LOCAL HOLOTAPE..." style="width: 100%; background: rgba(3,15,3,0.9); border: 1px solid var(--verde-pipboy); color: var(--verde-pipboy); padding: 4px 8px; font-family: inherit; font-size: 0.8rem; outline: none;" />
-                            <ul id="lista-sugerencias" style="display: none; position: absolute; top: 100%; left: 0; right: 0; max-height: 120px; overflow-y: auto; z-index: 50; border: 1px solid var(--verde-pipboy); background: #031003; list-style: none; padding: 0; margin: 2px 0 0 0;"></ul>
+                            <input type="text" id="input-buscar-cancion" placeholder="> SEARCH LOCAL HOLOTAPE..." style="width: 100%; background: rgba(0,0,0,0.75); border: 1px solid var(--verde-nukeboy); color: var(--verde-nukeboy); padding: 4px 8px; font-family: inherit; font-size: 0.8rem; outline: none;" />
+                            <ul id="lista-sugerencias" style="display: none; position: absolute; top: 100%; left: 0; right: 0; max-height: 120px; overflow-y: auto; z-index: 50; border: 1px solid var(--verde-nukeboy); background: #0a0804; list-style: none; padding: 0; margin: 2px 0 0 0;"></ul>
                         </div>
 
                         <div style="display: flex; gap: 6px; width: 100%;">
-                            <button id="btn-prev" class="boton-pipboy" style="flex: 1; margin: 0; font-size: 0.7rem;">&lt;&lt; PREV</button>
-                            <button id="btn-play" class="boton-pipboy" style="flex: 1; margin: 0; font-size: 0.7rem;">&gt; PLAY</button>
-                            <button id="btn-pause" class="boton-pipboy" style="flex: 1; margin: 0; font-size: 0.7rem;">|| PAUSE</button>
-                            <button id="btn-next" class="boton-pipboy" style="flex: 1; margin: 0; font-size: 0.7rem;">&gt;&gt; SKIP</button>
+                            <button id="btn-prev" class="boton-nukeboy" style="flex: 1; margin: 0; font-size: 0.7rem;">&lt;&lt; PREV</button>
+                            <button id="btn-play" class="boton-nukeboy" style="flex: 1; margin: 0; font-size: 0.7rem;">&gt; PLAY</button>
+                            <button id="btn-pause" class="boton-nukeboy" style="flex: 1; margin: 0; font-size: 0.7rem;">|| PAUSE</button>
+                            <button id="btn-next" class="boton-nukeboy" style="flex: 1; margin: 0; font-size: 0.7rem;">&gt;&gt; SKIP</button>
                         </div>
 
-                        <div style="display: flex; align-items: center; gap: 8px; border: 1px solid var(--verde-oscuro); padding: 5px 8px; background: rgba(2,10,2,0.6);">
-                            <span style="font-size: 0.7rem; color: var(--ambar-pipboy); font-weight: bold;">VOL</span>
-                            <input type="range" id="volumen-slider" min="0" max="100" step="1" value="80" style="flex: 1; accent-color: var(--verde-pipboy); cursor: pointer;" />
-                            <span id="volumen-text" style="font-size: 0.7rem; width: 36px; text-align: right; color: var(--ambar-pipboy);">80%</span>
+                        <div style="display: flex; flex-direction: column; gap: 3px; border: 1px solid var(--verde-oscuro); padding: 5px 8px; background: rgba(0,0,0,0.5);">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-size: 0.68rem; color: var(--ambar-nukeboy); font-weight: bold;">VOL</span>
+                                <span id="vol-ascii-bar" class="ascii-segmented-bar" style="font-size: 0.68rem; color: var(--verde-nukeboy);">[████████░░]</span>
+                                <span id="volumen-text" style="font-size: 0.7rem; color: var(--ambar-nukeboy);">80%</span>
+                            </div>
+                            <input type="range" id="volumen-slider" min="0" max="100" step="1" value="80" class="pip-segmented-slider" />
                         </div>
 
-                        <div style="display: flex; flex-direction: column; gap: 2px; border: 1px solid var(--verde-oscuro); padding: 5px 8px; background: rgba(2,10,2,0.6);">
-                            <div style="display: flex; justify-content: space-between; font-size: 0.65rem; opacity: 0.9;">
-                                <span id="tiempo-actual" style="color: var(--ambar-pipboy);">00:00</span>
+                        <div style="display: flex; flex-direction: column; gap: 3px; border: 1px solid var(--verde-oscuro); padding: 5px 8px; background: rgba(0,0,0,0.5);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.65rem;">
+                                <span id="tiempo-actual" style="color: var(--ambar-nukeboy);">00:00</span>
+                                <span id="prog-ascii-bar" class="ascii-segmented-bar" style="font-size: 0.65rem; color: var(--ambar-nukeboy);">[░░░░░░░░░░]</span>
                                 <span id="tiempo-duracion">00:00</span>
                             </div>
-                            <input type="range" id="progress-slider" min="0" max="100" step="0.1" value="0" style="width: 100%; accent-color: var(--ambar-pipboy); cursor: pointer;" />
+                            <input type="range" id="progress-slider" min="0" max="100" step="0.1" value="0" class="pip-segmented-slider amber-slider" />
                         </div>
                     </div>
 
-                    <div style="flex: 1; display: flex; flex-direction: column; border: 1px solid var(--verde-pipboy); background: rgba(3, 12, 4, 0.95); min-height: 0; overflow: hidden; position: relative;">
+                    <div style="flex: 1; display: flex; flex-direction: column; border: 1px solid var(--verde-nukeboy); background: rgba(6, 5, 2, 0.95); min-height: 0; overflow: hidden; position: relative;">
                         <div style="padding: 6px 10px; border-bottom: 1px dashed var(--verde-oscuro); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
-                            <span id="estado-reproduccion" style="font-size: 0.75rem; font-weight: bold; color: var(--ambar-pipboy);">[ OFF ]</span>
+                            <span id="estado-reproduccion" style="font-size: 0.75rem; font-weight: bold; color: var(--ambar-nukeboy);">[ OFF ]</span>
                             <span id="nombre-cancion" class="pip-ticker" style="font-size: 0.75rem; flex: 1; text-align: right; overflow: hidden; white-space: nowrap; margin-left: 10px;"><span class="ticker-content">WAITING FOR HOLOTAPE...</span></span>
                         </div>
                         <div style="position: relative; flex: 1; min-height: 0; width: 100%;">
@@ -530,16 +642,16 @@
                     
                     <div id="radio-uplink-col-left" class="pip-scroll-col" style="flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; height: 100%; overflow-y: auto; padding-right: 6px;">
                         
-                        <div style="border: 1px solid var(--verde-oscuro); background: rgba(2,10,2,0.5); padding: 6px 8px; display: flex; flex-direction: column; flex-shrink: 0;">
-                            <span style="font-size: 0.65rem; color: #ffcc00; font-weight: bold; margin-bottom: 4px; display: block; border-bottom: 1px dashed var(--verde-oscuro); padding-bottom: 2px;">FAVORITE STATIONS</span>
+                        <div style="border: 1px solid var(--verde-oscuro); background: rgba(0,0,0,0.45); padding: 6px 8px; display: flex; flex-direction: column; flex-shrink: 0;">
+                            <span style="font-size: 0.65rem; color: var(--ambar-nukeboy); font-weight: bold; margin-bottom: 4px; display: block; border-bottom: 1px dashed var(--verde-oscuro); padding-bottom: 2px;">FAVORITE STATIONS</span>
                             <ul id="lista-favoritos-radio" class="pip-five-lines-list">
                                 <li style="font-size: 0.75rem; color: var(--verde-oscuro);">> No favorite stations marked.</li>
                             </ul>
                         </div>
 
-                        <div style="border: 1px solid var(--verde-oscuro); background: rgba(2,10,2,0.5); padding: 6px 8px; display: flex; flex-direction: column; gap: 4px; flex-shrink: 0;">
-                            <span style="font-size: 0.65rem; color: var(--ambar-pipboy); font-weight: bold; display: block;">SATELLITE UPLINK – COUNTRY FILTER</span>
-                            <select id="select-pais-satelite" style="width: 100%; background: #031003; border: 1px solid var(--verde-pipboy); color: var(--verde-pipboy); padding: 3px; font-family: inherit; font-size: 0.75rem; outline: none;">
+                        <div style="border: 1px solid var(--verde-oscuro); background: rgba(0,0,0,0.45); padding: 6px 8px; display: flex; flex-direction: column; gap: 4px; flex-shrink: 0;">
+                            <span style="font-size: 0.65rem; color: var(--ambar-nukeboy); font-weight: bold; display: block;">SATELLITE UPLINK – COUNTRY FILTER</span>
+                            <select id="select-pais-satelite" style="width: 100%; background: #0a0804; border: 1px solid var(--verde-nukeboy); color: var(--verde-nukeboy); padding: 3px; font-family: inherit; font-size: 0.75rem; outline: none;">
                                 <option value="">[ ALL COUNTRIES / GLOBAL ]</option>
                                 <option value="MX">MEXICO [MX]</option>
                                 <option value="US">UNITED STATES [US]</option>
@@ -551,14 +663,14 @@
                                 <option value="ES">SPAIN [ES]</option>
                             </select>
                             <div style="display: flex; gap: 6px;">
-                                <input type="text" id="input-buscar-satelite" placeholder="> SEARCH STATION..." style="flex: 1; background: #031003; border: 1px solid var(--verde-pipboy); color: var(--verde-pipboy); padding: 3px 6px; font-family: inherit; font-size: 0.75rem; outline: none;" />
-                                <button id="btn-buscar-satelite" class="boton-pipboy btn-amber-border" style="margin: 0; padding: 2px 8px; font-size: 0.7rem;">[ SEARCH ]</button>
+                                <input type="text" id="input-buscar-satelite" placeholder="> SEARCH STATION..." style="flex: 1; background: #0a0804; border: 1px solid var(--verde-nukeboy); color: var(--verde-nukeboy); padding: 3px 6px; font-family: inherit; font-size: 0.75rem; outline: none;" />
+                                <button id="btn-buscar-satelite" class="boton-nukeboy btn-amber-border" style="margin: 0; padding: 2px 8px; font-size: 0.7rem;">[ SEARCH ]</button>
                             </div>
                         </div>
 
-                        <div style="border: 1px solid var(--verde-pipboy); background: rgba(3,12,4,0.85); display: flex; flex-direction: column; flex-shrink: 0; padding: 6px 8px;">
+                        <div style="border: 1px solid var(--verde-nukeboy); background: rgba(0,0,0,0.65); display: flex; flex-direction: column; flex-shrink: 0; padding: 6px 8px;">
                             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed var(--verde-oscuro); padding-bottom: 3px; margin-bottom: 4px; flex-shrink: 0;">
-                                <span id="titulo-resultados" style="font-size: 0.68rem; font-weight: bold; color: #ffcc00;">INTERCEPTION RESULTS: [ 0 ]</span>
+                                <span id="titulo-resultados" style="font-size: 0.68rem; font-weight: bold; color: var(--ambar-nukeboy);">INTERCEPTION RESULTS: [ 0 ]</span>
                             </div>
                             <ul id="lista-resultados-satelite" class="pip-five-lines-list">
                                 <li style="font-size: 0.75rem; color: var(--verde-oscuro); padding: 4px 0;">> Select a country or type a keyword and press [ SEARCH ].</li>
@@ -567,11 +679,11 @@
 
                     </div>
 
-                    <div style="flex: 1; display: flex; flex-direction: column; border: 1px solid var(--verde-pipboy); background: rgba(3, 12, 4, 0.95); min-height: 0; overflow: hidden; position: relative;">
+                    <div style="flex: 1; display: flex; flex-direction: column; border: 1px solid var(--verde-nukeboy); background: rgba(6, 5, 2, 0.95); min-height: 0; overflow: hidden; position: relative;">
                         
                         <div style="padding: 6px 10px; border-bottom: 1px dashed var(--verde-oscuro); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; gap: 8px;">
                             <div style="display: flex; align-items: center; gap: 6px;">
-                                <span id="estado-reproduccion-radio" style="font-size: 0.75rem; font-weight: bold; color: var(--ambar-pipboy);">[ OFF ]</span>
+                                <span id="estado-reproduccion-radio" style="font-size: 0.75rem; font-weight: bold; color: var(--ambar-nukeboy);">[ OFF ]</span>
                                 <button id="btn-fav-actual" class="chrono-btn" style="display: none; padding: 1px 5px; font-size: 0.65rem;" title="Marcar/Desmarcar Favorito">[♡]</button>
                             </div>
                             <span id="nombre-cancion-radio" class="pip-ticker" style="font-size: 0.75rem; flex: 1; text-align: right; overflow: hidden; white-space: nowrap;"><span class="ticker-content">WAITING FOR SIGNAL...</span></span>
@@ -581,15 +693,18 @@
                             <canvas id="osciloscopio-canvas-radio" style="width: 100%; height: 100%; display: block;"></canvas>
                         </div>
 
-                        <div style="padding: 6px 10px; border-top: 1px dashed var(--verde-oscuro); display: flex; flex-direction: column; gap: 6px; background: rgba(2,10,2,0.85); flex-shrink: 0;">
+                        <div style="padding: 6px 10px; border-top: 1px dashed var(--verde-oscuro); display: flex; flex-direction: column; gap: 6px; background: rgba(0,0,0,0.65); flex-shrink: 0;">
                             <div style="display: flex; gap: 8px;">
-                                <button id="btn-play-radio" class="boton-pipboy" style="flex: 1; margin: 0; font-size: 0.75rem; padding: 6px 10px;">&gt; PLAY</button>
-                                <button id="btn-pause-radio" class="boton-pipboy" style="flex: 1; margin: 0; font-size: 0.75rem; padding: 6px 10px;">|| PAUSE</button>
+                                <button id="btn-play-radio" class="boton-nukeboy" style="flex: 1; margin: 0; font-size: 0.75rem; padding: 6px 10px;">&gt; PLAY</button>
+                                <button id="btn-pause-radio" class="boton-nukeboy" style="flex: 1; margin: 0; font-size: 0.75rem; padding: 6px 10px;">|| PAUSE</button>
                             </div>
-                            <div style="display: flex; align-items: center; gap: 8px; border: 1px solid var(--verde-oscuro); padding: 4px 8px; background: rgba(2,10,2,0.6);">
-                                <span style="font-size: 0.7rem; color: var(--ambar-pipboy); font-weight: bold;">VOL</span>
-                                <input type="range" id="volumen-slider-radio" min="0" max="100" step="1" value="80" style="flex: 1; accent-color: var(--verde-pipboy); cursor: pointer;" />
-                                <span id="volumen-text-radio" style="font-size: 0.7rem; width: 36px; text-align: right; color: var(--ambar-pipboy);">80%</span>
+                            <div style="display: flex; flex-direction: column; gap: 2px; border: 1px solid var(--verde-oscuro); padding: 4px 8px; background: rgba(0,0,0,0.5);">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="font-size: 0.68rem; color: var(--ambar-nukeboy); font-weight: bold;">VOL</span>
+                                    <span id="vol-radio-ascii-bar" class="ascii-segmented-bar" style="font-size: 0.68rem; color: var(--verde-nukeboy);">[████████░░]</span>
+                                    <span id="volumen-text-radio" style="font-size: 0.7rem; color: var(--ambar-nukeboy);">80%</span>
+                                </div>
+                                <input type="range" id="volumen-slider-radio" min="0" max="100" step="1" value="80" class="pip-segmented-slider" />
                             </div>
                         </div>
                     </div>
@@ -597,7 +712,7 @@
                 </div>
 
                 <div class="pip-map-bottom-hud" style="flex-shrink: 0;">
-                    <div class="map-hud-box" style="flex: 1; color: var(--ambar-pipboy);">SYS.SEC // AUDIO-UPLINK</div>
+                    <div class="map-hud-box" style="flex: 1; color: var(--ambar-nukeboy);">SYS.SEC // AUDIO-UPLINK</div>
                     <div class="map-hud-box" style="flex: 1; text-align: center;" id="radio-hora-display">13:14:52</div>
                     <div class="map-hud-box" style="flex: 1; text-align: right;"><span class="hud-amber-label" style="margin-right: 5px;">FREQ:</span> ACTIVE</div>
                 </div>

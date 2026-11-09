@@ -1,5 +1,5 @@
 /* =====================================================
-   STATS.JS — TELEMETRÍA, SKILLS RPG, CALIBRADOR, WAYPOINTS Y RADAR TRAIL
+   STATS.JS — TELEMETRÍA, SKILLS RPG, MINIJUEGOS, CALIBRADOR Y TRAIL
 ===================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const { Geolocation, Motion } = CapacitorPlugins;
 
     // ==========================================
-    // 1. RELOJ GIGANTE + CHIME HORARIO (CON SOPORTE DE PANTALLA BLOQUEADA)
+    // 1. RELOJ GIGANTE + CHIME HORARIO
     // ==========================================
     const displayReloj = document.getElementById('pip-reloj');
     const displayFecha = document.getElementById('pip-fecha');
@@ -35,13 +35,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const mes = String(ahora.getMonth() + 1).padStart(2, '0');
         displayFecha.textContent = `${nombreDia} // ${dia}.${mes}.${ahora.getFullYear()}`;
 
-        // Ventana de 59 segundos en el minuto 0 para que nunca se salte el Chime con el teléfono bloqueado
         if (minutos === 0 && ultimaHoraSonada !== horas) {
             ultimaHoraSonada = horas;
             localStorage.setItem('pip_last_chime_hour', String(horas));
 
-            if (window.AndroidPipBoy && typeof window.AndroidPipBoy.reproducirChimeNativo === 'function') {
-                window.AndroidPipBoy.reproducirChimeNativo();
+            if (window.AndroidNukeboy && typeof window.AndroidNukeboy.reproducirChimeNativo === 'function') {
+                window.AndroidNukeboy.reproducirChimeNativo();
             } else if (typeof window.reproducirSonido === 'function') {
                 window.reproducirSonido('levelup.wav', 6.0);
             }
@@ -50,7 +49,6 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(actualizarReloj, 1000);
     actualizarReloj();
 
-    // Recibe el pulso nativo de Java cada 5 segundos cuando la pantalla está apagada
     window.pulsoRelojNativo = function() {
         actualizarReloj();
         if (typeof window.verificarAlertasDataNativo === 'function') {
@@ -59,19 +57,23 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // ==========================================
-    // 2. SISTEMA DE ENERGÍA (BATERÍA REAL)
+    // 2. SISTEMA DE ENERGÍA (BARRA SEGMENTADA MS-DOS COMPACTA)
     // ==========================================
     function actualizarBateria(bateria) {
         const nivel = Math.round(bateria.level * 100);
         const acDc = bateria.charging ? '[AC]' : '[DC]';
-        const boxPwr = document.querySelector('.hud-pwr');
-        if (boxPwr) {
-            const labels = boxPwr.querySelectorAll('span');
-            if (labels[0]) labels[0].textContent = `PWR ${acDc}`;
-            if (labels[1]) labels[1].textContent = `${nivel}%`;
+        const lblPwr = document.getElementById('pwr-label-txt');
+        const barAscii = document.getElementById('pwr-ascii-bar');
+        const pctTxt = document.getElementById('pwr-pct-txt');
+
+        if (lblPwr) lblPwr.textContent = `PWR ${acDc}`;
+        if (barAscii && typeof window.generarBarraSegmentada === 'function') {
+            barAscii.textContent = window.generarBarraSegmentada(nivel, 5);
         }
-        const barra = document.querySelector('.pip-level-fill');
-        if (barra) barra.style.width = `${nivel}%`;
+        if (pctTxt) pctTxt.textContent = `${nivel}%`;
+
+        const barraLegacy = document.querySelector('.pip-level-fill');
+        if (barraLegacy) barraLegacy.style.width = `${nivel}%`;
     }
 
     if ('getBattery' in navigator) {
@@ -83,11 +85,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 3. RED Y MODO SUPERVIVENCIA (OFFLINE)
+    // 3. RED Y MODO SUPERVIVENCIA (OFFLINE COMPACTO)
     // ==========================================
     function actualizarRed() {
-        const boxNet = document.querySelector('.hud-net');
-        const spanNet = boxNet ? boxNet.querySelectorAll('span')[1] : null;
+        const spanNet = document.getElementById('net-status-txt') || document.querySelector('.hud-net span:last-child');
 
         if (!navigator.onLine) {
             if (spanNet) spanNet.textContent = 'OFFLINE';
@@ -102,11 +103,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (navigator.connection && spanNet) {
-            const tipo = navigator.connection.effectiveType ? navigator.connection.effectiveType.toUpperCase() : 'WIFI';
-            const vel = navigator.connection.downlink ? navigator.connection.downlink + 'Mb' : 'OK';
-            spanNet.textContent = `${tipo} // ${vel}`;
+            const tipo = navigator.connection.effectiveType ? navigator.connection.effectiveType.toUpperCase() : 'NET';
+            spanNet.textContent = tipo;
         } else if (spanNet) {
-            spanNet.textContent = 'ONLINE // SECURE';
+            spanNet.textContent = 'ONLINE';
         }
         return true;
     }
@@ -124,7 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // 4. TELEMETRÍA AMBIENTAL Y CLIMA
     // ==========================================
-    function traducirClimaPipBoy(codigo) {
+    function traducirClimaNukeboy(codigo) {
         if (codigo === 0) return { texto: 'CLEAR SKY', icono: '☀' };
         if (codigo <= 3) return { texto: 'CLOUDY', icono: '☁' };
         if (codigo <= 48) return { texto: 'HAZE / FOG', icono: '≋' };
@@ -139,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const resLoc = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10`);
             const dataLoc = await resLoc.json();
-            const ciudad = dataLoc.address.city || dataLoc.address.town || 'UNKNOWN';
+            const ciudad = dataLoc.address.city || dataLoc.address.town || dataLoc.address.village || 'UNKNOWN';
             const estado = dataLoc.address.state || '';
             const pais = dataLoc.address.country_code ? dataLoc.address.country_code.toUpperCase() : '';
             document.getElementById('sensor-location').textContent = `${ciudad.toUpperCase()}, ${estado.substring(0,3).toUpperCase()}. [${pais}]`;
@@ -155,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const temp = Math.round(dataClima.current.temperature_2m);
                 const vientoKmh = Math.round(dataClima.current.wind_speed_10m);
                 const uvInfo = dataClima.daily && dataClima.daily.uv_index_max ? dataClima.daily.uv_index_max[0] : 0;
-                const infoClima = traducirClimaPipBoy(dataClima.current.weather_code);
+                const infoClima = traducirClimaNukeboy(dataClima.current.weather_code);
                 
                 document.getElementById('clima-estado').textContent = `${infoClima.texto} | ${temp}°C`;
                 document.getElementById('clima-icono').textContent = infoClima.icono;
@@ -188,12 +188,9 @@ document.addEventListener('DOMContentLoaded', () => {
         procesarAPIs(window.pipCurrentLat, window.pipCurrentLon);
     }
 
-    let ultimaActualizacionClima = 0;
     function ejecutarActualizacionInteligente() {
         obtenerDatosAmbientales();
-        ultimaActualizacionClima = Date.now();
     }
-
     setInterval(ejecutarActualizacionInteligente, 900000);
 
     // ==========================================
@@ -420,7 +417,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             const col = document.createElement('input');
-            col.type = 'color'; col.value = wp.color || '#ffcc00';
+            col.type = 'color'; col.value = wp.color || window.pipColorSecundario || '#00e5ff';
             col.style.cssText = 'width: 24px; height: 24px; border: none; background: transparent; cursor: pointer; padding: 0; flex-shrink: 0;';
             col.onchange = () => { wp.color = col.value; guardarYActualizarWaypoints(); };
 
@@ -429,17 +426,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const nameIn = document.createElement('input');
             nameIn.type = 'text'; nameIn.value = wp.name;
-            nameIn.style.cssText = 'background: transparent; border: none; border-bottom: 1px dashed var(--verde-oscuro); color: var(--verde-pipboy); font-family: inherit; font-size: 0.85rem; margin-bottom: 2px; outline: none; width: 100%;';
+            nameIn.style.cssText = 'background: transparent; border: none; border-bottom: 1px dashed var(--verde-oscuro); color: var(--verde-nukeboy); font-family: inherit; font-size: 0.85rem; margin-bottom: 2px; outline: none; width: 100%;';
             nameIn.onchange = () => { wp.name = nameIn.value.trim().toUpperCase() || 'WAYPOINT'; guardarYActualizarWaypoints(); };
 
             const coordsSpan = document.createElement('span');
             coordsSpan.textContent = `LAT: ${Number(wp.lat).toFixed(5)} // LON: ${Number(wp.lon).toFixed(5)}`;
-            coordsSpan.style.cssText = 'font-size: 0.65rem; color: rgba(29, 242, 59, 0.7);';
+            coordsSpan.style.cssText = 'font-size: 0.65rem; opacity: 0.75;';
 
             infoDiv.appendChild(nameIn); infoDiv.appendChild(coordsSpan);
 
             const delBtn = document.createElement('button');
-            delBtn.textContent = '[X]'; delBtn.className = 'boton-pipboy'; delBtn.style.cssText = 'padding: 2px 8px; margin: 0; font-size: 0.75rem;';
+            delBtn.textContent = '[X]'; delBtn.className = 'boton-nukeboy'; delBtn.style.cssText = 'padding: 2px 8px; margin: 0; font-size: 0.75rem;';
             delBtn.onclick = () => {
                 if (window.reproducirSonido) window.reproducirSonido('menu_cancel.wav');
                 pipWaypoints.splice(index, 1); guardarYActualizarWaypoints();
@@ -453,7 +450,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnNavRapido) btnNavRapido.addEventListener('click', () => {
         if (window.pipCurrentLat === null) { alert("WAITING FOR REAL GPS SIGNAL..."); return; }
         if (window.reproducirSonido) window.reproducirSonido('menu_ok.wav');
-        pipWaypoints.push({ id: Date.now(), name: "QUICK WAYPOINT", lat: window.pipCurrentLat, lon: window.pipCurrentLon, color: "#ffcc00", active: pipWaypoints.filter(w => w.active).length < 4 });
+        pipWaypoints.push({ id: Date.now(), name: "QUICK WAYPOINT", lat: window.pipCurrentLat, lon: window.pipCurrentLon, color: window.pipColorSecundario || "#00e5ff", active: pipWaypoints.filter(w => w.active).length < 4 });
         guardarYActualizarWaypoints();
     });
 
@@ -471,7 +468,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (partes.length === 2) { lat = parseFloat(partes[0].trim()); lon = parseFloat(partes[1].trim()); if (isNaN(lat) || isNaN(lon)) { alert("INVALID."); return; } } 
             else { return; }
         }
-        pipWaypoints.push({ id: Date.now(), name: name.trim().toUpperCase(), lat, lon, color: "#ffcc00", active: pipWaypoints.filter(w => w.active).length < 4 });
+        pipWaypoints.push({ id: Date.now(), name: name.trim().toUpperCase(), lat, lon, color: window.pipColorSecundario || "#00e5ff", active: pipWaypoints.filter(w => w.active).length < 4 });
         guardarYActualizarWaypoints();
     });
 
@@ -490,8 +487,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function procesarOrientacionBrazalete(alpha, beta, gamma) {
         if (alpha === null || alpha === undefined || isNaN(alpha)) return;
         if (isNaN(rumboSuavizadoSin) || isNaN(rumboSuavizadoCos)) {
-            rumboSuavizadoSin = 0;
-            rumboSuavizadoCos = 1;
+            rumboSuavizadoSin = 0; rumboSuavizadoCos = 1;
         }
 
         const rad = Math.PI / 180;
@@ -547,10 +543,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     async function reiniciarBusBrujula() {
-        rumboSuavizadoSin = 0;
-        rumboSuavizadoCos = 1;
-        contadorCambioLado = 0;
-
+        rumboSuavizadoSin = 0; rumboSuavizadoCos = 1; contadorCambioLado = 0;
         if (calModeLabel) calModeLabel.textContent = "MOVE WRIST IN ∞ (FIG-8)";
 
         window.removeEventListener('deviceorientationabsolute', manejadorOrientacionAbsoluta, true);
@@ -573,10 +566,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (window.DeviceOrientationEvent) {
                 window.addEventListener('deviceorientation', manejadorOrientacionEstandar, true);
             }
-
-            setTimeout(() => {
-                actualizarUICalibrador('SENSOR BUS RESTARTED');
-            }, 2500);
+            setTimeout(() => actualizarUICalibrador('SENSOR BUS RESTARTED'), 2500);
         }, 150);
     }
 
@@ -620,7 +610,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 6. SISTEMA BREADCRUMBS (TRAIL)
+    // 6. SISTEMA BREADCRUMBS (TRAIL CON PALETA DINÁMICA)
     // ==========================================
     const trailCanvas = document.getElementById('trail-canvas');
     const trailStatusBadge = document.getElementById('trail-status-badge');
@@ -661,84 +651,48 @@ document.addEventListener('DOMContentLoaded', () => {
         if (trailCamModeLabel) trailCamModeLabel.textContent = `N ▲ // CAM: ${trailCamMode}`;
     }
 
-    if (btnZoomIn) {
-        btnZoomIn.addEventListener('click', () => {
-            if (window.reproducirSonido) window.reproducirSonido('tuner.wav');
-            if (trailCamMode === 'FIT') trailCamMode = 'FOLLOW';
-            trailZoomSpanMetros = Math.max(20, trailZoomSpanMetros * 0.6);
-            actualizarBotonesCamaraUI();
-            window.dibujarLienzoTrail();
-        });
-    }
+    if (btnZoomIn) btnZoomIn.addEventListener('click', () => {
+        if (window.reproducirSonido) window.reproducirSonido('tuner.wav');
+        if (trailCamMode === 'FIT') trailCamMode = 'FOLLOW';
+        trailZoomSpanMetros = Math.max(20, trailZoomSpanMetros * 0.6);
+        actualizarBotonesCamaraUI(); window.dibujarLienzoTrail();
+    });
 
-    if (btnZoomOut) {
-        btnZoomOut.addEventListener('click', () => {
-            if (window.reproducirSonido) window.reproducirSonido('tuner.wav');
-            if (trailCamMode === 'FIT') trailCamMode = 'FOLLOW';
-            trailZoomSpanMetros = Math.min(2500000, trailZoomSpanMetros * 1.65);
-            actualizarBotonesCamaraUI();
-            window.dibujarLienzoTrail();
-        });
-    }
+    if (btnZoomOut) btnZoomOut.addEventListener('click', () => {
+        if (window.reproducirSonido) window.reproducirSonido('tuner.wav');
+        if (trailCamMode === 'FIT') trailCamMode = 'FOLLOW';
+        trailZoomSpanMetros = Math.min(2500000, trailZoomSpanMetros * 1.65);
+        actualizarBotonesCamaraUI(); window.dibujarLienzoTrail();
+    });
 
-    if (btnCenterMe) {
-        btnCenterMe.addEventListener('click', () => {
-            if (window.reproducirSonido) window.reproducirSonido('menu_select.wav');
-            trailCamMode = 'FOLLOW';
-            actualizarBotonesCamaraUI();
-            window.dibujarLienzoTrail();
-        });
-    }
+    if (btnCenterMe) btnCenterMe.addEventListener('click', () => {
+        if (window.reproducirSonido) window.reproducirSonido('menu_select.wav');
+        trailCamMode = 'FOLLOW'; actualizarBotonesCamaraUI(); window.dibujarLienzoTrail();
+    });
 
-    if (btnFitAll) {
-        btnFitAll.addEventListener('click', () => {
-            if (window.reproducirSonido) window.reproducirSonido('menu_select.wav');
-            trailCamMode = 'FIT';
-            actualizarBotonesCamaraUI();
-            window.dibujarLienzoTrail();
-        });
-    }
+    if (btnFitAll) btnFitAll.addEventListener('click', () => {
+        if (window.reproducirSonido) window.reproducirSonido('menu_select.wav');
+        trailCamMode = 'FIT'; actualizarBotonesCamaraUI(); window.dibujarLienzoTrail();
+    });
 
     if (trailCanvas) {
-        let arrastrandoMapa = false;
-        let lastPanX = 0;
-        let lastPanY = 0;
-
-        const iniciarPan = (x, y) => {
-            arrastrandoMapa = true;
-            lastPanX = x;
-            lastPanY = y;
-        };
-
+        let arrastrandoMapa = false, lastPanX = 0, lastPanY = 0;
+        const iniciarPan = (x, y) => { arrastrandoMapa = true; lastPanX = x; lastPanY = y; };
         const moverPan = (x, y) => {
             if (!arrastrandoMapa || ultimoPxPorMetro <= 0) return;
-            const dx = x - lastPanX;
-            const dy = y - lastPanY;
+            const dx = x - lastPanX, dy = y - lastPanY;
             if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
-                if (trailCamMode !== 'FREE') {
-                    trailCamMode = 'FREE';
-                    actualizarBotonesCamaraUI();
-                }
-                lastPanX = x;
-                lastPanY = y;
-                trailCamX -= dx / ultimoPxPorMetro;
-                trailCamY += dy / ultimoPxPorMetro;
+                if (trailCamMode !== 'FREE') { trailCamMode = 'FREE'; actualizarBotonesCamaraUI(); }
+                lastPanX = x; lastPanY = y;
+                trailCamX -= dx / ultimoPxPorMetro; trailCamY += dy / ultimoPxPorMetro;
                 window.dibujarLienzoTrail();
             }
         };
-
         trailCanvas.addEventListener('mousedown', (e) => iniciarPan(e.clientX, e.clientY));
         window.addEventListener('mousemove', (e) => moverPan(e.clientX, e.clientY));
         window.addEventListener('mouseup', () => arrastrandoMapa = false);
-
-        trailCanvas.addEventListener('touchstart', (e) => {
-            if (e.touches.length === 1) iniciarPan(e.touches[0].clientX, e.touches[0].clientY);
-        }, { passive: true });
-
-        trailCanvas.addEventListener('touchmove', (e) => {
-            if (e.touches.length === 1) moverPan(e.touches[0].clientX, e.touches[0].clientY);
-        }, { passive: true });
-
+        trailCanvas.addEventListener('touchstart', (e) => { if (e.touches.length === 1) iniciarPan(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
+        trailCanvas.addEventListener('touchmove', (e) => { if (e.touches.length === 1) moverPan(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
         trailCanvas.addEventListener('touchend', () => arrastrandoMapa = false);
     }
 
@@ -752,8 +706,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function actualizarUITrail() {
         if (trailStatusBadge) {
             trailStatusBadge.textContent = `[ ${trailState} ]`;
-            trailStatusBadge.style.color = (trailState === 'REC') ? '#ffcc00' : 'var(--verde-pipboy)';
-            trailStatusBadge.style.borderColor = (trailState === 'REC') ? '#ffcc00' : 'var(--verde-oscuro)';
+            trailStatusBadge.style.color = (trailState === 'REC') ? 'var(--ambar-nukeboy)' : 'var(--verde-nukeboy)';
+            trailStatusBadge.style.borderColor = (trailState === 'REC') ? 'var(--ambar-nukeboy)' : 'var(--verde-oscuro)';
         }
         if (trailDistDisplay) trailDistDisplay.textContent = `PATH: ${trailDistanceKM < 1 ? Math.round(trailDistanceKM * 1000) + ' M' : trailDistanceKM.toFixed(2) + ' KM'}`;
         if (trailNodesDisplay) trailNodesDisplay.textContent = `PTS: ${trailPoints.length}`;
@@ -767,13 +721,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (trailPoints.length === 0) {
             trailPoints.push({ lat: latSuavizadaGPS, lon: lonSuavizadaGPS, t: Date.now() });
-            guardarEstadoTrail();
-            return;
+            guardarEstadoTrail(); return;
         }
 
         const ultimo = trailPoints[trailPoints.length - 1];
         const distKM = calcularDistancia(ultimo.lat, ultimo.lon, latSuavizadaGPS, lonSuavizadaGPS);
-        
         if (distKM * 1000 >= 3.0 && distKM * 1000 <= 500) {
             trailDistanceKM += distKM;
             trailPoints.push({ lat: latSuavizadaGPS, lon: lonSuavizadaGPS, t: Date.now() });
@@ -783,16 +735,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    if (trailState === 'REC') {
-        trailSamplerInterval = setInterval(muestrearPuntoTrail, 3000);
-    }
+    if (trailState === 'REC') trailSamplerInterval = setInterval(muestrearPuntoTrail, 3000);
 
     if (btnTrailStart) btnTrailStart.addEventListener('click', () => {
         if (trailState === 'REC') return;
         trailState = 'REC';
         if (window.reproducirSonido) window.reproducirSonido('menu_ok.wav');
-        muestrearPuntoTrail();
-        guardarEstadoTrail();
+        muestrearPuntoTrail(); guardarEstadoTrail();
         if (trailSamplerInterval) clearInterval(trailSamplerInterval);
         trailSamplerInterval = setInterval(muestrearPuntoTrail, 3000);
     });
@@ -847,26 +796,25 @@ document.addEventListener('DOMContentLoaded', () => {
             trailCanvas.height = Math.floor(rect.height);
         }
 
+        const colPri = window.pipColorPrimario || '#ff9500';
+        const colSec = window.pipColorSecundario || '#00e5ff';
+
         const ctx = trailCanvas.getContext('2d');
-        const W = trailCanvas.width; const H = trailCanvas.height;
+        const W = trailCanvas.width, H = trailCanvas.height;
         ctx.clearRect(0, 0, W, H);
 
         const listaNodos = [...trailPoints];
         if (window.pipCurrentLat !== null) listaNodos.push({ lat: window.pipCurrentLat, lon: window.pipCurrentLon, actual: true });
 
         if (listaNodos.length === 0) {
-            ctx.fillStyle = 'rgba(29, 242, 59, 0.6)'; ctx.font = "14px 'Share Tech Mono', monospace"; ctx.textAlign = 'center';
+            ctx.fillStyle = colPri; ctx.font = "14px 'Share Tech Mono', monospace"; ctx.textAlign = 'center';
             ctx.fillText('WAITING FOR GPS SIGNAL TO RENDER RADAR...', W / 2, H / 2 - 10);
             return;
         }
 
-        const refLat = listaNodos[0].lat;
-        const refLon = listaNodos[0].lon;
+        const refLat = listaNodos[0].lat, refLon = listaNodos[0].lon;
         const metrosPorGradoLon = 111320 * Math.cos(refLat * Math.PI / 180);
-        const aMetros = (lat, lon) => ({
-            x: (lon - refLon) * metrosPorGradoLon,
-            y: (lat - refLat) * 111320
-        });
+        const aMetros = (lat, lon) => ({ x: (lon - refLon) * metrosPorGradoLon, y: (lat - refLat) * 111320 });
 
         const puntosMetros = listaNodos.map(pt => aMetros(pt.lat, pt.lon));
         const posJugadorM = puntosMetros[puntosMetros.length - 1];
@@ -877,12 +825,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (p.x < minX) minX = p.x; if (p.x > maxX) maxX = p.x;
                 if (p.y < minY) minY = p.y; if (p.y > maxY) maxY = p.y;
             });
-            trailCamX = (minX + maxX) / 2;
-            trailCamY = (minY + maxY) / 2;
+            trailCamX = (minX + maxX) / 2; trailCamY = (minY + maxY) / 2;
             trailZoomSpanMetros = Math.max(maxX - minX, maxY - minY, 40) * 1.35;
         } else if (trailCamMode === 'FOLLOW') {
-            trailCamX = posJugadorM.x;
-            trailCamY = posJugadorM.y;
+            trailCamX = posJugadorM.x; trailCamY = posJugadorM.y;
         }
 
         const spanVisibleMetros = trailZoomSpanMetros;
@@ -893,10 +839,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const aPantallaY = (mY) => (H / 2) - (mY - trailCamY) * pxPorMetro;
 
         const pasoGridM = elegirPasoCuadriculaMetros(spanVisibleMetros);
-        const minVisX = trailCamX - (W / 2) / pxPorMetro;
-        const maxVisX = trailCamX + (W / 2) / pxPorMetro;
-        const minVisY = trailCamY - (H / 2) / pxPorMetro;
-        const maxVisY = trailCamY + (H / 2) / pxPorMetro;
+        const minVisX = trailCamX - (W / 2) / pxPorMetro, maxVisX = trailCamX + (W / 2) / pxPorMetro;
+        const minVisY = trailCamY - (H / 2) / pxPorMetro, maxVisY = trailCamY + (H / 2) / pxPorMetro;
 
         const primerX = Math.floor(minVisX / pasoGridM) * pasoGridM;
         const primerY = Math.floor(minVisY / pasoGridM) * pasoGridM;
@@ -904,22 +848,17 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.lineWidth = 1;
         for (let gx = primerX; gx <= maxVisX; gx += pasoGridM) {
             const px = aPantallaX(gx);
-            const esMayor = Math.round(gx / pasoGridM) % 5 === 0;
-            ctx.strokeStyle = esMayor ? 'rgba(29, 242, 59, 0.25)' : 'rgba(29, 242, 59, 0.10)';
+            ctx.strokeStyle = colPri;
+            ctx.globalAlpha = (Math.round(gx / pasoGridM) % 5 === 0) ? 0.25 : 0.10;
             ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px, H); ctx.stroke();
         }
         for (let gy = primerY; gy <= maxVisY; gy += pasoGridM) {
             const py = aPantallaY(gy);
-            const esMayor = Math.round(gy / pasoGridM) % 5 === 0;
-            ctx.strokeStyle = esMayor ? 'rgba(29, 242, 59, 0.25)' : 'rgba(29, 242, 59, 0.10)';
+            ctx.strokeStyle = colPri;
+            ctx.globalAlpha = (Math.round(gy / pasoGridM) % 5 === 0) ? 0.25 : 0.10;
             ctx.beginPath(); ctx.moveTo(0, py); ctx.lineTo(W, py); ctx.stroke();
         }
-
-        ctx.strokeStyle = 'rgba(29, 242, 59, 0.28)';
-        ctx.beginPath();
-        ctx.moveTo(W / 2 - 8, H / 2); ctx.lineTo(W / 2 + 8, H / 2);
-        ctx.moveTo(W / 2, H / 2 - 8); ctx.lineTo(W / 2, H / 2 + 8);
-        ctx.stroke();
+        ctx.globalAlpha = 1.0;
 
         if (trailScaleIndicator) {
             trailScaleIndicator.textContent = `GRID: ${formatearMetrosEtiqueta(pasoGridM)} // SPAN: ${formatearMetrosEtiqueta(spanVisibleMetros)}`;
@@ -927,11 +866,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (trailPoints.length > 0) {
             ctx.save();
-            ctx.strokeStyle = '#1df23b'; ctx.lineWidth = 2.5; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-            ctx.shadowBlur = 8; ctx.shadowColor = '#1df23b';
+            ctx.strokeStyle = colPri; ctx.lineWidth = 2.5; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+            ctx.shadowBlur = 8; ctx.shadowColor = colPri;
             ctx.beginPath();
             for (let i = 0; i < trailPoints.length; i++) {
-                const px = aPantallaX(puntosMetros[i].x); const py = aPantallaY(puntosMetros[i].y);
+                const px = aPantallaX(puntosMetros[i].x), py = aPantallaY(puntosMetros[i].y);
                 if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
             }
             if (trailState === 'REC' && puntosMetros.length > trailPoints.length) {
@@ -939,64 +878,51 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             ctx.stroke();
 
-            ctx.fillStyle = '#1df23b';
+            ctx.fillStyle = colPri;
             for (let i = 0; i < trailPoints.length; i++) {
-                const px = aPantallaX(puntosMetros[i].x); const py = aPantallaY(puntosMetros[i].y);
+                const px = aPantallaX(puntosMetros[i].x), py = aPantallaY(puntosMetros[i].y);
                 if (px >= -10 && px <= W + 10 && py >= -10 && py <= H + 10) {
                     ctx.fillRect(px - 1.5, py - 1.5, 3, 3);
                 }
             }
 
-            const startPx = aPantallaX(puntosMetros[0].x);
-            const startPy = aPantallaY(puntosMetros[0].y);
-            ctx.strokeStyle = '#ffcc00'; ctx.lineWidth = 1.5;
+            const startPx = aPantallaX(puntosMetros[0].x), startPy = aPantallaY(puntosMetros[0].y);
+            ctx.strokeStyle = colSec; ctx.lineWidth = 1.5;
             ctx.strokeRect(startPx - 4, startPy - 4, 8, 8);
             ctx.restore();
         }
 
         const wpActivos = pipWaypoints.filter(w => w.active).slice(0, 4);
-        const jugadorPxX = aPantallaX(posJugadorM.x);
-        const jugadorPxY = aPantallaY(posJugadorM.y);
+        const jugadorPxX = aPantallaX(posJugadorM.x), jugadorPxY = aPantallaY(posJugadorM.y);
 
         wpActivos.forEach(wp => {
             const wpM = aMetros(wp.lat, wp.lon);
-            let wx = aPantallaX(wpM.x);
-            let wy = aPantallaY(wpM.y);
+            let wx = aPantallaX(wpM.x), wy = aPantallaY(wpM.y);
             const distKM = window.pipCurrentLat !== null ? calcularDistancia(window.pipCurrentLat, window.pipCurrentLon, wp.lat, wp.lon) : 0;
             const textoDist = distKM < 1 ? `${Math.round(distKM * 1000)}M` : `${distKM.toFixed(1)}KM`;
             const margen = 18;
-
             const dentroDePantalla = (wx >= margen && wx <= W - margen && wy >= margen && wy <= H - margen);
 
             ctx.save();
-            ctx.fillStyle = wp.color || '#ffcc00';
-            ctx.strokeStyle = wp.color || '#ffcc00';
+            ctx.fillStyle = wp.color || colSec; ctx.strokeStyle = wp.color || colSec;
             ctx.font = "12px 'Share Tech Mono', monospace";
 
             if (dentroDePantalla) {
                 ctx.beginPath();
                 ctx.moveTo(wx, wy - 6); ctx.lineTo(wx + 6, wy); ctx.lineTo(wx, wy + 6); ctx.lineTo(wx - 6, wy);
                 ctx.closePath(); ctx.fill();
-
-                ctx.textAlign = 'left';
-                ctx.fillText(`${wp.name} [${textoDist}]`, wx + 9, wy + 4);
+                ctx.textAlign = 'left'; ctx.fillText(`${wp.name} [${textoDist}]`, wx + 9, wy + 4);
             } else {
-                const dx = wx - (W / 2);
-                const dy = wy - (H / 2);
-                const maxX = (W / 2) - margen;
-                const maxY = (H / 2) - margen;
+                const dx = wx - (W / 2), dy = wy - (H / 2);
+                const maxX = (W / 2) - margen, maxY = (H / 2) - margen;
                 const scale = Math.min(maxX / (Math.abs(dx) || 1), maxY / (Math.abs(dy) || 1));
-
-                const edgeX = (W / 2) + dx * scale;
-                const edgeY = (H / 2) + dy * scale;
+                const edgeX = (W / 2) + dx * scale, edgeY = (H / 2) + dy * scale;
 
                 ctx.beginPath();
                 ctx.moveTo(edgeX, edgeY - 5); ctx.lineTo(edgeX + 5, edgeY); ctx.lineTo(edgeX, edgeY + 5); ctx.lineTo(edgeX - 5, edgeY);
                 ctx.closePath(); ctx.stroke();
-
                 ctx.textAlign = edgeX > W / 2 ? 'right' : 'left';
-                const offsetTxt = edgeX > W / 2 ? -8 : 8;
-                ctx.fillText(`◈ ${wp.name} (${textoDist})`, edgeX + offsetTxt, edgeY + 4);
+                ctx.fillText(`◈ ${wp.name} (${textoDist})`, edgeX + (edgeX > W / 2 ? -8 : 8), edgeY + 4);
             }
             ctx.restore();
         });
@@ -1004,18 +930,14 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.save();
         ctx.translate(jugadorPxX, jugadorPxY);
         ctx.rotate((window.pipCalibratedHeading || 0) * Math.PI / 180); 
-
-        ctx.fillStyle = 'rgba(29, 242, 59, 0.14)';
-        ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, 26, -Math.PI / 2 - 0.38, -Math.PI / 2 + 0.38); ctx.closePath(); ctx.fill();
-
-        ctx.fillStyle = '#ffcc00'; ctx.strokeStyle = '#1df23b'; ctx.lineWidth = 1.5; ctx.shadowBlur = 8; ctx.shadowColor = '#ffcc00';
+        ctx.fillStyle = colSec; ctx.strokeStyle = colPri; ctx.lineWidth = 1.5; ctx.shadowBlur = 8; ctx.shadowColor = colSec;
         ctx.beginPath(); ctx.moveTo(0, -10); ctx.lineTo(7, 8); ctx.lineTo(0, 4); ctx.lineTo(-7, 8); ctx.closePath(); ctx.fill(); ctx.stroke();
         ctx.restore();
     };
 
     window.addEventListener('resize', () => {
         if (document.getElementById('panel-trail') && document.getElementById('panel-trail').style.display === 'flex') {
-            if (typeof window.dibujarLienzoTrail === 'function') window.dibujarLienzoTrail();
+            window.dibujarLienzoTrail();
         }
     });
 
@@ -1054,16 +976,14 @@ document.addEventListener('DOMContentLoaded', () => {
             lonSuavizadaGPS = lonSuavizadaGPS * 0.35 + rawLon * 0.65;
         }
 
-        if (trailState === 'REC') {
-            muestrearPuntoTrail();
-        }
+        if (trailState === 'REC') muestrearPuntoTrail();
 
         sincronizarDeclinacionMagnetica(rawLat, rawLon, false);
         actualizarDistanciaWaypoint();
         moverCintaYMarcador(normalizarGrados(rumboSensorCrudo + offsetCalibracion));
 
         if (document.getElementById('panel-trail') && document.getElementById('panel-trail').style.display === 'flex') {
-            if (typeof window.dibujarLienzoTrail === 'function') window.dibujarLienzoTrail();
+            window.dibujarLienzoTrail();
         }
 
         if (ultimaUbicacion) {
@@ -1086,15 +1006,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isNativeApp && Geolocation) {
             try {
                 const perm = await Geolocation.checkPermissions();
-                if (perm.location !== 'granted') {
-                    await Geolocation.requestPermissions();
-                }
+                if (perm.location !== 'granted') await Geolocation.requestPermissions();
                 Geolocation.watchPosition(
                     { enableHighAccuracy: true, timeout: 10000, maximumAge: 2000 },
                     (pos, err) => {
-                        if (!err && pos && pos.coords) {
-                            procesarActualizacionGPS(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
-                        }
+                        if (!err && pos && pos.coords) procesarActualizacionGPS(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
                     }
                 );
                 return;
@@ -1122,9 +1038,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnPauseStop = document.getElementById('btn-chrono-pausestop');
 
     let tiempoTranscurridoMs = parseInt(localStorage.getItem('pip_chrono_ms')) || 0;
-    let chronoInterval = null;
-    let chronoActivo = false;
-    let marcaInicio = 0;
+    let chronoInterval = null, chronoActivo = false, marcaInicio = 0;
 
     function formatearTiempo(ms) {
         const horas = Math.floor(ms / 3600000);
@@ -1145,7 +1059,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 chronoActivo = true;
                 marcaInicio = performance.now() - tiempoTranscurridoMs;
                 if (btnPauseStop) btnPauseStop.textContent = '[❚❚]';
-
                 chronoInterval = setInterval(() => {
                     tiempoTranscurridoMs = performance.now() - marcaInicio;
                     localStorage.setItem('pip_chrono_ms', Math.floor(tiempoTranscurridoMs));
@@ -1158,29 +1071,32 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnPauseStop) {
         btnPauseStop.addEventListener('click', () => {
             if (chronoActivo) {
-                chronoActivo = false;
-                clearInterval(chronoInterval);
+                chronoActivo = false; clearInterval(chronoInterval);
                 btnPauseStop.textContent = '[■]';
             } else {
-                tiempoTranscurridoMs = 0;
-                localStorage.setItem('pip_chrono_ms', '0');
-                actualizarDisplayChrono();
-                btnPauseStop.textContent = '[❚❚]';
+                tiempoTranscurridoMs = 0; localStorage.setItem('pip_chrono_ms', '0');
+                actualizarDisplayChrono(); btnPauseStop.textContent = '[❚❚]';
             }
         });
     }
 
     // ==========================================
-    // 9. SISTEMA DE HABILIDADES RPG (STR, DEX, CON, INT, WIS, CHA)
+    // 9. SUBPESTAÑAS SYS (STATUS, SKILLS, GAMES, CFG) Y RPG
     // ==========================================
     const tabStatus = document.getElementById('tab-stats-status');
     const tabSkills = document.getElementById('tab-stats-skills');
+    const tabGames = document.getElementById('tab-stats-games');
+    const tabConfig = document.getElementById('tab-stats-config');
+
     const panelStatus = document.getElementById('panel-status');
     const panelSkills = document.getElementById('panel-skills');
+    const panelGames = document.getElementById('panel-games');
+    const panelConfig = document.getElementById('panel-config');
+
     const statsCompassBar = document.getElementById('stats-compass-bar');
     const skillsBarsRow = document.getElementById('skills-bars-row');
 
-    const STORAGE_SKILLS_KEY = 'pipboy_rpg_skills_v1';
+    const STORAGE_SKILLS_KEY = 'nukeboy_rpg_skills_v1';
     const TRES_DIAS_MS = 3 * 24 * 60 * 60 * 1000;
     const ORDEN_ATRIBUTOS = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
 
@@ -1192,58 +1108,55 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function activarSubPestanaStats(pestana) {
-     if (window.reproducirSonido) window.reproducirSonido('menu_select.wav');
-     if (panelStatus) panelStatus.style.display = (pestana === 'status') ? 'flex' : 'none';
-     if (panelSkills) panelSkills.style.display = (pestana === 'skills') ? 'flex' : 'none';
-     if (statsCompassBar) statsCompassBar.style.display = (pestana === 'status') ? 'block' : 'none';
-     if (btnToggleCal) btnToggleCal.style.display = (pestana === 'status') ? 'inline-block' : 'none';
-     if (pestana !== 'status' && calPanel) {
-         calPanel.style.display = 'none';
-         if (btnToggleCal) btnToggleCal.classList.remove('activo');
-     }
+        if (window.reproducirSonido) window.reproducirSonido('menu_select.wav');
+        if (panelStatus) panelStatus.style.display = (pestana === 'status') ? 'flex' : 'none';
+        if (panelSkills) panelSkills.style.display = (pestana === 'skills') ? 'flex' : 'none';
+        if (panelGames) panelGames.style.display = (pestana === 'games') ? 'flex' : 'none';
+        if (panelConfig) panelConfig.style.display = (pestana === 'config') ? 'flex' : 'none';
 
-     if (tabStatus) tabStatus.classList.toggle('activo', pestana === 'status');
-     if (tabSkills) tabSkills.classList.toggle('activo', pestana === 'skills');
+        if (statsCompassBar) statsCompassBar.style.display = (pestana === 'status') ? 'block' : 'none';
+        if (btnToggleCal) btnToggleCal.style.display = (pestana === 'status') ? 'inline-block' : 'none';
+        if (pestana !== 'status' && calPanel) {
+            calPanel.style.display = 'none';
+            if (btnToggleCal) btnToggleCal.classList.remove('activo');
+        }
 
-     if (pestana === 'skills') {
-         verificarDecadenciaHabilidades();
-         renderizarSkillsUI();
-     }
- }
+        if (tabStatus) tabStatus.classList.toggle('activo', pestana === 'status');
+        if (tabSkills) tabSkills.classList.toggle('activo', pestana === 'skills');
+        if (tabGames) tabGames.classList.toggle('activo', pestana === 'games');
+        if (tabConfig) tabConfig.classList.toggle('activo', pestana === 'config');
+
+        if (pestana === 'skills') {
+            verificarDecadenciaHabilidades();
+            renderizarSkillsUI();
+        }
+    }
 
     if (tabStatus) tabStatus.addEventListener('click', () => activarSubPestanaStats('status'));
     if (tabSkills) tabSkills.addEventListener('click', () => activarSubPestanaStats('skills'));
+    if (tabGames) tabGames.addEventListener('click', () => activarSubPestanaStats('games'));
+    if (tabConfig) tabConfig.addEventListener('click', () => activarSubPestanaStats('config'));
 
-    // Si pasan 3 días sin subir un atributo, baja 1 punto por cada ciclo de 3 días inactivo
     function verificarDecadenciaHabilidades() {
         const ahora = Date.now();
         let huboCambios = false;
-
         ORDEN_ATRIBUTOS.forEach(attr => {
             const item = skillsData[attr];
             const transcurrido = ahora - item.lastUpdate;
-
             if (transcurrido >= TRES_DIAS_MS) {
                 const ciclosPerdidos = Math.floor(transcurrido / TRES_DIAS_MS);
-                if (item.val > 0) {
-                    item.val = Math.max(0, item.val - ciclosPerdidos);
-                }
+                if (item.val > 0) item.val = Math.max(0, item.val - ciclosPerdidos);
                 item.lastUpdate += ciclosPerdidos * TRES_DIAS_MS;
                 huboCambios = true;
             }
         });
-
-        if (huboCambios) {
-            localStorage.setItem(STORAGE_SKILLS_KEY, JSON.stringify(skillsData));
-        }
+        if (huboCambios) localStorage.setItem(STORAGE_SKILLS_KEY, JSON.stringify(skillsData));
     }
 
     function formatearTiempoRestanteDecay(lastUpdateMs) {
         const restanteMs = Math.max(0, (lastUpdateMs + TRES_DIAS_MS) - Date.now());
         const horasTotales = Math.floor(restanteMs / (1000 * 60 * 60));
-        const dias = Math.floor(horasTotales / 24);
-        const horas = horasTotales % 24;
-        return `${dias}D ${horas}H`;
+        return `${Math.floor(horasTotales / 24)}D ${horasTotales % 24}H`;
     }
 
     function mostrarModalConfirmacionRPG(atributo, esSubir, callbackConfirmar) {
@@ -1251,7 +1164,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!modal) {
             modal = document.createElement('div');
             modal.id = 'rpg-level-modal';
-            modal.style.cssText = 'position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,10,0,0.88); z-index:9999; display:flex; justify-content:center; align-items:center;';
+            modal.style.cssText = 'position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.88); z-index:9999; display:flex; justify-content:center; align-items:center;';
             document.body.appendChild(modal);
         }
 
@@ -1259,23 +1172,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const valorDestino = esSubir ? skillsData[atributo].val + 1 : skillsData[atributo].val - 1;
 
         modal.innerHTML = `
-            <div style="background:rgba(5,20,5,0.98); border:2px solid #ffcc00; box-shadow:0 0 24px rgba(255,204,0,0.45); padding:18px 24px; text-align:center; min-width:270px;">
-                <p style="color:#ffcc00; font-size:1.25rem; font-weight:bold; margin-bottom:8px;">[ ${tituloModal} ]</p>
-                <p style="color:var(--verde-pipboy); font-size:0.9rem; margin-bottom:16px;">Set ${atributo} to ${valorDestino}/5 and reset 3-day timer?</p>
+            <div style="background:var(--fondo-terminal); border:2px solid var(--ambar-nukeboy); padding:18px 24px; text-align:center; min-width:270px;">
+                <p style="color:var(--ambar-nukeboy); font-size:1.25rem; font-weight:bold; margin-bottom:8px;">[ ${tituloModal} ]</p>
+                <p style="color:var(--verde-nukeboy); font-size:0.9rem; margin-bottom:16px;">Set ${atributo} to ${valorDestino}/5 and reset 3-day timer?</p>
                 <div style="display:flex; justify-content:center; gap:14px;">
-                    <button id="rpg-btn-confirm" class="boton-pipboy" style="border-color:#ffcc00; color:#ffcc00; padding:6px 16px; margin:0;">[ CONFIRM ]</button>
-                    <button id="rpg-btn-cancel" class="boton-pipboy" style="padding:6px 16px; margin:0;">[ CANCEL ]</button>
+                    <button id="rpg-btn-confirm" class="boton-nukeboy btn-amber-border" style="padding:6px 16px; margin:0;">[ CONFIRM ]</button>
+                    <button id="rpg-btn-cancel" class="boton-nukeboy" style="padding:6px 16px; margin:0;">[ CANCEL ]</button>
                 </div>
             </div>
         `;
 
         modal.querySelector('#rpg-btn-confirm').addEventListener('click', (e) => {
             e.stopPropagation();
-            if (window.reproducirSonido) {
-                window.reproducirSonido(esSubir ? 'levelup.wav' : 'menu_ok.wav', 6.0);
-            }
-            callbackConfirmar();
-            modal.remove();
+            if (window.reproducirSonido) window.reproducirSonido(esSubir ? 'levelup.wav' : 'menu_ok.wav', 6.0);
+            callbackConfirmar(); modal.remove();
         });
 
         modal.querySelector('#rpg-btn-cancel').addEventListener('click', (e) => {
@@ -1294,23 +1204,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const col = document.createElement('div');
             col.className = 'skill-vertical-col';
 
-            // 5 segmentos apilados de arriba (nivel 5) hacia abajo (nivel 1)
             let segmentosHTML = '';
             for (let nivel = 5; nivel >= 1; nivel--) {
-                const lleno = nivel <= data.val;
-                segmentosHTML += `<div class="skill-seg ${lleno ? 'lleno' : ''}"></div>`;
+                segmentosHTML += `<div class="skill-seg ${nivel <= data.val ? 'lleno' : ''}"></div>`;
             }
 
             col.innerHTML = `
                 <span class="skill-attr-title">${attr}</span>
                 <span class="skill-attr-score">${data.val}/5</span>
-                <div class="skill-bar-tower">
-                    ${segmentosHTML}
-                </div>
-                <span class="skill-decay-timer" title="Time before -1 pt decay">${formatearTiempoRestanteDecay(data.lastUpdate)}</span>
+                <div class="skill-bar-tower">${segmentosHTML}</div>
+                <span class="skill-decay-timer">${formatearTiempoRestanteDecay(data.lastUpdate)}</span>
                 <div class="skill-btn-pair">
-                    <button class="chrono-btn btn-skill-plus" title="Subir 1 punto">[+]</button>
-                    <button class="chrono-btn btn-skill-minus" title="Bajar 1 punto">[-]</button>
+                    <button class="chrono-btn btn-skill-plus">[+]</button>
+                    <button class="chrono-btn btn-skill-minus">[-]</button>
                 </div>
             `;
 
@@ -1344,40 +1250,414 @@ document.addEventListener('DOMContentLoaded', () => {
 
     verificarDecadenciaHabilidades();
     renderizarSkillsUI();
-    setInterval(() => {
-        verificarDecadenciaHabilidades();
-        if (panelSkills && panelSkills.style.display === 'flex') {
-            renderizarSkillsUI();
-        }
-    }, 60000);
 
     // ==========================================
-    // 10. LINTERNA TÁCTICA (FLASH LED DEL CELULAR)
+    // 10. SUBPESTAÑA GAMES (1. SIMÓN DICE TÁCTICO + 2. GATO 3 FICHAS)
+    // ==========================================
+    const btnSelectSimon = document.getElementById('btn-select-game-simon');
+    const btnSelectTTT = document.getElementById('btn-select-game-ttt');
+    const simonControls = document.getElementById('simon-controls-box');
+    const tttControls = document.getElementById('ttt-controls-box');
+    const simonBoard = document.getElementById('simon-board');
+    const tttBoard = document.getElementById('ttt-board');
+
+    if (btnSelectSimon && btnSelectTTT) {
+        btnSelectSimon.addEventListener('click', () => {
+            btnSelectSimon.classList.add('activo-game-btn');
+            btnSelectTTT.classList.remove('activo-game-btn');
+            simonControls.style.display = 'flex';
+            tttControls.style.display = 'none';
+            simonBoard.style.display = 'grid';
+            tttBoard.style.display = 'none';
+        });
+        btnSelectTTT.addEventListener('click', () => {
+            btnSelectTTT.classList.add('activo-game-btn');
+            btnSelectSimon.classList.remove('activo-game-btn');
+            tttControls.style.display = 'flex';
+            simonControls.style.display = 'none';
+            tttBoard.style.display = 'grid';
+            simonBoard.style.display = 'none';
+        });
+    }
+
+    // --- JUEGO 1: SIMÓN DICE TÁCTICO (1P SURVIVAL & 2P DUEL) ---
+    const btnSimon1P = document.getElementById('btn-simon-1p');
+    const btnSimon2P = document.getElementById('btn-simon-2p');
+    const btnSimonStart = document.getElementById('btn-simon-start');
+    const btnSimonPass = document.getElementById('btn-simon-pass');
+    const simonHighVal = document.getElementById('simon-highscore-val');
+    const simonScoreVal = document.getElementById('simon-score-val');
+    const simonStatusMsg = document.getElementById('simon-status-msg');
+    const simonPads = document.querySelectorAll('.simon-pad');
+
+    let simonMode = '1P';
+    let simonSeq = [];
+    let simonUserStep = 0;
+    let simonPlayingBack = false;
+    let simonActive = false;
+    let simonTurnPlayer = 1;
+    let simonPhase2P = 'IDLE'; // 'BUILD_INITIAL', 'REPEAT', 'ADD_ONE'
+    let simonHighScore = parseInt(localStorage.getItem('pip_simon_highscore') || '0', 10);
+    if (simonHighVal) simonHighVal.textContent = String(simonHighScore);
+
+    function iluminarPadSimon(padIdx, duracion = 260) {
+        const pad = document.querySelector(`.simon-pad[data-pad="${padIdx}"]`);
+        if (!pad) return;
+        pad.classList.add('lit');
+        if (typeof window.reproducirTonoSimon === 'function') window.reproducirTonoSimon(padIdx, duracion);
+        setTimeout(() => pad.classList.remove('lit'), duracion);
+    }
+
+    function reproducirSecuenciaSimon(callbackFin) {
+        simonPlayingBack = true;
+        let i = 0;
+        const intervalo = setInterval(() => {
+            if (i >= simonSeq.length) {
+                clearInterval(intervalo);
+                simonPlayingBack = false;
+                if (callbackFin) callbackFin();
+                return;
+            }
+            iluminarPadSimon(simonSeq[i], 280);
+            i++;
+        }, 460);
+    }
+
+    if (btnSimon1P) btnSimon1P.addEventListener('click', () => {
+        simonMode = '1P'; simonActive = false;
+        btnSimon1P.classList.add('activo'); btnSimon2P.classList.remove('activo');
+        if (btnSimonPass) btnSimonPass.style.display = 'none';
+        if (simonStatusMsg) simonStatusMsg.textContent = '1P READY. PRESS [START]';
+    });
+
+    if (btnSimon2P) btnSimon2P.addEventListener('click', () => {
+        simonMode = '2P'; simonActive = false;
+        btnSimon2P.classList.add('activo'); btnSimon1P.classList.remove('activo');
+        if (btnSimonPass) btnSimonPass.style.display = 'none';
+        if (simonStatusMsg) simonStatusMsg.textContent = '2P DUEL READY. PRESS [START]';
+    });
+
+    if (btnSimonStart) btnSimonStart.addEventListener('click', () => {
+        simonSeq = [];
+        simonUserStep = 0;
+        simonActive = true;
+
+        if (simonMode === '1P') {
+            if (btnSimonPass) btnSimonPass.style.display = 'none';
+            for (let k = 0; k < 3; k++) simonSeq.push(Math.floor(Math.random() * 4));
+            if (simonScoreVal) simonScoreVal.textContent = String(simonSeq.length);
+            if (simonStatusMsg) simonStatusMsg.textContent = 'WATCH SEQUENCE...';
+            setTimeout(() => {
+                reproducirSecuenciaSimon(() => {
+                    if (simonStatusMsg) simonStatusMsg.textContent = 'YOUR TURN! REPEAT SEQ';
+                });
+            }, 350);
+        } else {
+            simonTurnPlayer = 1;
+            simonPhase2P = 'BUILD_INITIAL';
+            if (simonScoreVal) simonScoreVal.textContent = '0';
+            if (simonStatusMsg) simonStatusMsg.textContent = 'P1: TAP 1-4 PADS & PRESS [PASS]';
+            if (btnSimonPass) btnSimonPass.style.display = 'inline-block';
+        }
+    });
+
+    if (btnSimonPass) btnSimonPass.addEventListener('click', () => {
+        if (!simonActive || simonMode !== '2P' || simonPlayingBack) return;
+        if (simonSeq.length === 0) return;
+
+        btnSimonPass.style.display = 'none';
+        simonTurnPlayer = simonTurnPlayer === 1 ? 2 : 1;
+        simonUserStep = 0;
+        simonPhase2P = 'REPEAT';
+        if (simonStatusMsg) simonStatusMsg.textContent = `P${simonTurnPlayer}: WATCH CHALLENGE...`;
+
+        setTimeout(() => {
+            reproducirSecuenciaSimon(() => {
+                if (simonStatusMsg) simonStatusMsg.textContent = `P${simonTurnPlayer}: REPEAT ${simonSeq.length} STEPS!`;
+            });
+        }, 500);
+    });
+
+    simonPads.forEach(pad => {
+        pad.addEventListener('click', () => {
+            if (!simonActive || simonPlayingBack) return;
+            const idx = parseInt(pad.getAttribute('data-pad'), 10);
+            iluminarPadSimon(idx, 220);
+
+            if (simonMode === '1P') {
+                if (idx === simonSeq[simonUserStep]) {
+                    simonUserStep++;
+                    if (simonUserStep >= simonSeq.length) {
+                        const scoreLogrado = simonSeq.length;
+                        if (scoreLogrado > simonHighScore) {
+                            simonHighScore = scoreLogrado;
+                            localStorage.setItem('pip_simon_highscore', String(simonHighScore));
+                            if (simonHighVal) simonHighVal.textContent = String(simonHighScore);
+                        }
+                        simonUserStep = 0;
+                        simonSeq.push(Math.floor(Math.random() * 4));
+                        if (simonScoreVal) simonScoreVal.textContent = String(simonSeq.length);
+                        if (simonStatusMsg) simonStatusMsg.textContent = 'CORRECT! NEXT WAVE...';
+                        setTimeout(() => {
+                            reproducirSecuenciaSimon(() => {
+                                if (simonStatusMsg) simonStatusMsg.textContent = 'REPEAT SEQUENCE';
+                            });
+                        }, 700);
+                    }
+                } else {
+                    simonActive = false;
+                    if (window.reproducirSonido) window.reproducirSonido('menu_cancel.wav');
+                    if (simonStatusMsg) simonStatusMsg.textContent = `FAILED AT ${simonSeq.length}! PRESS [START]`;
+                }
+            } else {
+                // MODO 2 JUGADORES
+                if (simonPhase2P === 'BUILD_INITIAL') {
+                    if (simonSeq.length < 4) {
+                        simonSeq.push(idx);
+                        if (simonScoreVal) simonScoreVal.textContent = String(simonSeq.length);
+                        if (simonSeq.length === 4) {
+                            if (simonStatusMsg) simonStatusMsg.textContent = 'MAX INIT REACHED. PRESS [PASS]';
+                        }
+                    }
+                } else if (simonPhase2P === 'REPEAT') {
+                    if (idx === simonSeq[simonUserStep]) {
+                        simonUserStep++;
+                        if (simonUserStep >= simonSeq.length) {
+                            simonPhase2P = 'ADD_ONE';
+                            if (simonStatusMsg) simonStatusMsg.textContent = `P${simonTurnPlayer}: NOW ADD 1 NEW STEP!`;
+                        }
+                    } else {
+                        simonActive = false;
+                        const ganador = simonTurnPlayer === 1 ? 2 : 1;
+                        if (window.reproducirSonido) window.reproducirSonido('levelup.wav');
+                        if (simonStatusMsg) simonStatusMsg.textContent = `P${simonTurnPlayer} FAILED! PLAYER ${ganador} WINS!`;
+                    }
+                } else if (simonPhase2P === 'ADD_ONE') {
+                    simonSeq.push(idx);
+                    if (simonScoreVal) simonScoreVal.textContent = String(simonSeq.length);
+                    simonPhase2P = 'WAIT_PASS';
+                    if (btnSimonPass) btnSimonPass.style.display = 'inline-block';
+                    if (simonStatusMsg) simonStatusMsg.textContent = `STEP ADDED! PRESS [PASS TURN]`;
+                }
+            }
+        });
+    });
+
+    // --- JUEGO 2: GATO TÁCTICO DE 3 FICHAS (TAC-GRID 3) ---
+    const btnTTT1P = document.getElementById('btn-ttt-1p');
+    const btnTTT2P = document.getElementById('btn-ttt-2p');
+    const rowTTTLvl = document.getElementById('ttt-ai-level-row');
+    const btnsTTTLvl = document.querySelectorAll('.ttt-lvl-btn');
+    const btnTTTReset = document.getElementById('btn-ttt-reset');
+    const tttStatusMsg = document.getElementById('ttt-status-msg');
+    const tttScoreLine = document.getElementById('ttt-score-line');
+    const tttCells = document.querySelectorAll('.ttt-cell');
+
+    let tttMode = '1P';
+    let tttAiLevel = 'med'; // 'easy', 'med', 'mil'
+    let queueX = [];
+    let queueO = [];
+    let tttTurn = 'X';
+    let tttOver = false;
+    let scoreX = 0, scoreO = 0;
+
+    const WIN_LINES = [
+        [0,1,2],[3,4,5],[6,7,8],
+        [0,3,6],[1,4,7],[2,5,8],
+        [0,4,8],[2,4,6]
+    ];
+
+    function checarGanadorLista(qX, qO) {
+        for (const l of WIN_LINES) {
+            if (l.every(idx => qX.includes(idx))) return 'X';
+            if (l.every(idx => qO.includes(idx))) return 'O';
+        }
+        return null;
+    }
+
+    function renderTableroTTT() {
+        tttCells.forEach((cell, idx) => {
+            cell.classList.remove('token-o', 'fading-token');
+            if (queueX.includes(idx)) {
+                cell.textContent = 'X';
+                if (queueX.length === 3 && queueX[0] === idx && tttTurn === 'X' && !tttOver) {
+                    cell.classList.add('fading-token');
+                }
+            } else if (queueO.includes(idx)) {
+                cell.textContent = 'O';
+                cell.classList.add('token-o');
+                if (queueO.length === 3 && queueO[0] === idx && tttTurn === 'O' && !tttOver) {
+                    cell.classList.add('fading-token');
+                }
+            } else {
+                cell.textContent = '';
+            }
+        });
+    }
+
+    function reiniciarPartidaTTT() {
+        queueX = []; queueO = [];
+        tttTurn = 'X'; tttOver = false;
+        if (tttStatusMsg) tttStatusMsg.textContent = 'TURN: PLAYER X';
+        renderTableroTTT();
+    }
+
+    function aplicarMovimientoSimulado(qPropia, pos) {
+        const copia = [...qPropia];
+        if (copia.length >= 3) copia.shift();
+        copia.push(pos);
+        return copia;
+    }
+
+    function elegirMovimientoIA() {
+        const ocupadas = [...queueX, ...queueO];
+        const libres = [0,1,2,3,4,5,6,7,8].filter(i => !ocupadas.includes(i));
+        if (libres.length === 0) return null;
+
+        if (tttAiLevel === 'easy' && Math.random() < 0.7) {
+            return libres[Math.floor(Math.random() * libres.length)];
+        }
+
+        // 1. Buscar victoria inmediata para O (considerando que su 1ra ficha se borra si tiene 3)
+        for (const mov of libres) {
+            const nuevaO = aplicarMovimientoSimulado(queueO, mov);
+            if (checarGanadorLista(queueX, nuevaO) === 'O') return mov;
+        }
+
+        // 2. Bloquear victoria inmediata de X
+        for (const mov of libres) {
+            const nuevaX = aplicarMovimientoSimulado(queueX, mov);
+            if (checarGanadorLista(nuevaX, queueO) === 'X') return mov;
+        }
+
+        if (tttAiLevel === 'med') {
+            if (libres.includes(4) && Math.random() < 0.6) return 4;
+            return libres[Math.floor(Math.random() * libres.length)];
+        }
+
+        // 3. Nivel MIL-TERM (Minimax con profundidad 4 respetando cola FIFO de 3 fichas)
+        function minimax(qX, qO, depth, isMax) {
+            const win = checarGanadorLista(qX, qO);
+            if (win === 'O') return 10 + depth;
+            if (win === 'X') return -10 - depth;
+            if (depth === 0) return (qO.includes(4) ? 1 : 0) - (qX.includes(4) ? 1 : 0);
+
+            const disp = [0,1,2,3,4,5,6,7,8].filter(i => !qX.includes(i) && !qO.includes(i));
+            if (isMax) {
+                let best = -999;
+                for (const m of disp) {
+                    best = Math.max(best, minimax(qX, aplicarMovimientoSimulado(qO, m), depth - 1, false));
+                }
+                return best;
+            } else {
+                let best = 999;
+                for (const m of disp) {
+                    best = Math.min(best, minimax(aplicarMovimientoSimulado(qX, m), qO, depth - 1, true));
+                }
+                return best;
+            }
+        }
+
+        let mejorPuntaje = -999;
+        let mejoresMovs = [];
+        for (const mov of libres) {
+            const score = minimax(queueX, aplicarMovimientoSimulado(queueO, mov), 3, false);
+            if (score > mejorPuntaje) {
+                mejorPuntaje = score;
+                mejoresMovs = [mov];
+            } else if (score === mejorPuntaje) {
+                mejoresMovs.push(mov);
+            }
+        }
+        return mejoresMovs[Math.floor(Math.random() * mejoresMovs.length)];
+    }
+
+    function ejecutarJugadaTTT(idx) {
+        if (tttOver || queueX.includes(idx) || queueO.includes(idx)) return;
+
+        if (tttTurn === 'X') {
+            queueX = aplicarMovimientoSimulado(queueX, idx);
+        } else {
+            queueO = aplicarMovimientoSimulado(queueO, idx);
+        }
+
+        const ganador = checarGanadorLista(queueX, queueO);
+        if (ganador) {
+            tttOver = true;
+            if (ganador === 'X') scoreX++; else scoreO++;
+            if (tttScoreLine) tttScoreLine.textContent = `X: ${scoreX} // O: ${scoreO}`;
+            if (tttStatusMsg) tttStatusMsg.textContent = `VICTORY: PLAYER ${ganador} WINS!`;
+            if (window.reproducirSonido) window.reproducirSonido('levelup.wav');
+            renderTableroTTT();
+            return;
+        }
+
+        tttTurn = (tttTurn === 'X') ? 'O' : 'X';
+        if (tttStatusMsg) {
+            tttStatusMsg.textContent = (tttMode === '1P' && tttTurn === 'O') ? 'AI COMPUTING MOVE...' : `TURN: PLAYER ${tttTurn}`;
+        }
+        renderTableroTTT();
+
+        if (tttMode === '1P' && tttTurn === 'O' && !tttOver) {
+            setTimeout(() => {
+                const movIA = elegirMovimientoIA();
+                if (movIA !== null) {
+                    if (window.reproducirSonido) window.reproducirSonido('menu_select.wav');
+                    ejecutarJugadaTTT(movIA);
+                }
+            }, 340);
+        }
+    }
+
+    tttCells.forEach(cell => {
+        cell.addEventListener('click', () => {
+            if (tttOver) return;
+            if (tttMode === '1P' && tttTurn === 'O') return;
+            const idx = parseInt(cell.getAttribute('data-idx'), 10);
+            ejecutarJugadaTTT(idx);
+        });
+    });
+
+    if (btnTTT1P) btnTTT1P.addEventListener('click', () => {
+        tttMode = '1P';
+        btnTTT1P.classList.add('activo'); btnTTT2P.classList.remove('activo');
+        if (rowTTTLvl) rowTTTLvl.style.display = 'flex';
+        reiniciarPartidaTTT();
+    });
+
+    if (btnTTT2P) btnTTT2P.addEventListener('click', () => {
+        tttMode = '2P';
+        btnTTT2P.classList.add('activo'); btnTTT1P.classList.remove('activo');
+        if (rowTTTLvl) rowTTTLvl.style.display = 'none';
+        reiniciarPartidaTTT();
+    });
+
+    btnsTTTLvl.forEach(btn => {
+        btn.addEventListener('click', () => {
+            btnsTTTLvl.forEach(b => b.classList.remove('activo'));
+            btn.classList.add('activo');
+            tttAiLevel = btn.getAttribute('data-lvl');
+            reiniciarPartidaTTT();
+        });
+    });
+
+    if (btnTTTReset) btnTTTReset.addEventListener('click', reiniciarPartidaTTT);
+
+    // ==========================================
+    // 11. LINTERNA TÁCTICA (FLASH LED DEL CELULAR)
     // ==========================================
     const btnFlashlight = document.getElementById('btn-flashlight');
     let estadoLinternaLocal = false;
 
     if (btnFlashlight) {
         btnFlashlight.addEventListener('click', () => {
-            if (window.AndroidPipBoy && typeof window.AndroidPipBoy.alternarLinternaNativa === 'function') {
-                estadoLinternaLocal = window.AndroidPipBoy.alternarLinternaNativa();
+            if (window.AndroidNukeboy && typeof window.AndroidNukeboy.alternarLinternaNativa === 'function') {
+                estadoLinternaLocal = window.AndroidNukeboy.alternarLinternaNativa();
             } else {
                 estadoLinternaLocal = !estadoLinternaLocal;
             }
-
             btnFlashlight.textContent = estadoLinternaLocal ? '[ ☼ LIGHT: ON ]' : '[ ☼ LIGHT: OFF ]';
             btnFlashlight.classList.toggle('activo', estadoLinternaLocal);
-            if (estadoLinternaLocal) {
-                btnFlashlight.style.setProperty('border-color', '#ffcc00', 'important');
-                btnFlashlight.style.setProperty('background', '#ffcc00', 'important');
-                btnFlashlight.style.setProperty('color', '#0a120b', 'important');
-                btnFlashlight.style.setProperty('box-shadow', '0 0 10px #ffcc00', 'important');
-            } else {
-                btnFlashlight.style.removeProperty('border-color');
-                btnFlashlight.style.removeProperty('background');
-                btnFlashlight.style.removeProperty('color');
-                btnFlashlight.style.removeProperty('box-shadow');
-            }
         });
     }
 

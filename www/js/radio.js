@@ -85,12 +85,12 @@ document.addEventListener('DOMContentLoaded', () => {
     inputCarpeta.setAttribute('multiple', '');
     inputCarpeta.removeAttribute('accept');
 
-    let audioPipboy = document.getElementById('audio-pipboy');
-    if (!audioPipboy) {
-        audioPipboy = document.createElement('audio');
-        audioPipboy.id = 'audio-pipboy';
-        audioPipboy.style.display = 'none';
-        document.body.appendChild(audioPipboy);
+    let audioNukeboy = document.getElementById('audio-nukeboy');
+    if (!audioNukeboy) {
+        audioNukeboy = document.createElement('audio');
+        audioNukeboy.id = 'audio-nukeboy';
+        audioNukeboy.style.display = 'none';
+        document.body.appendChild(audioNukeboy);
     }
 
     const btnPlayRadio = document.getElementById('btn-play-radio');
@@ -112,7 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (typeof window.registrarReproductorMusical === 'function') {
-        window.registrarReproductorMusical(audioPipboy);
+        window.registrarReproductorMusical(audioNukeboy);
         window.registrarReproductorMusical(radioSatelital);
     }
 
@@ -129,7 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let usuarioQuiereRadio = false;
 
     // ==========================================
-    // 2. SISTEMA DE VOLUMEN REAL 0% A 100%
+    // 2. SISTEMA DE VOLUMEN REAL 0% A 100% E ILUMINACIÓN DEL SLIDER
     // ==========================================
     let audioCtx = null;
     let analyserNode = null;
@@ -138,29 +138,35 @@ document.addEventListener('DOMContentLoaded', () => {
     let dataArrayOsc = null;
     let faseSimulada = 0;
 
-    let pctVolumenActual = Math.round((parseFloat(localStorage.getItem('pipboy_vol_musica') ?? '0.80')) * 100);
+    let pctVolumenActual = Math.round((parseFloat(localStorage.getItem('nukeboy_vol_musica') ?? '0.80')) * 100);
     if (isNaN(pctVolumenActual)) pctVolumenActual = 80;
 
     function aplicarVolumenGlobal(porcentaje0a100) {
         const pct = Math.max(0, Math.min(100, Math.round(porcentaje0a100)));
         pctVolumenActual = pct;
         const lineal = pct / 100;
-        window.pipboyVolumenLineal = lineal;
-        localStorage.setItem('pipboy_vol_musica', lineal.toString());
+        window.nukeboyVolumenLineal = lineal;
+        localStorage.setItem('nukeboy_vol_musica', lineal.toString());
 
         const volAcustico = pct === 0 ? 0 : Math.pow(lineal, 1.65);
 
-        audioPipboy.volume = volAcustico;
+        audioNukeboy.volume = volAcustico;
         radioSatelital.volume = volAcustico;
-        audioPipboy.muted = (pct === 0);
+        audioNukeboy.muted = (pct === 0);
         radioSatelital.muted = (pct === 0);
 
         if (gainNodeHolotape && audioCtx) {
             gainNodeHolotape.gain.setValueAtTime(volAcustico, audioCtx.currentTime);
         }
 
-        if (volumenSlider && parseInt(volumenSlider.value, 10) !== pct) volumenSlider.value = pct;
-        if (volumenSliderRadio && parseInt(volumenSliderRadio.value, 10) !== pct) volumenSliderRadio.value = pct;
+        if (volumenSlider) {
+            if (parseInt(volumenSlider.value, 10) !== pct) volumenSlider.value = pct;
+            volumenSlider.style.setProperty('--slider-pct', `${pct}%`);
+        }
+        if (volumenSliderRadio) {
+            if (parseInt(volumenSliderRadio.value, 10) !== pct) volumenSliderRadio.value = pct;
+            volumenSliderRadio.style.setProperty('--slider-pct', `${pct}%`);
+        }
         if (volumenText) volumenText.textContent = `${pct}%`;
         if (volumenTextRadio) volumenTextRadio.textContent = `${pct}%`;
     }
@@ -177,11 +183,10 @@ document.addEventListener('DOMContentLoaded', () => {
     aplicarVolumenGlobal(pctVolumenActual);
 
     // ==========================================
-    // 3. MOTOR DE OSCILOSCOPIO CRT
+    // 3. MOTOR DE OSCILOSCOPIO CRT (CON COLOR DINÁMICO)
     // ==========================================
     function asegurarAnalizadorHolotape() {
-        // En Android nativo NO secuestramos el tag <audio> con WebAudio para que nunca se silencie ni se corte al apagar pantalla
-        if (esAppNativa || window.AndroidPipBoy) return;
+        if (esAppNativa || window.AndroidNukeboy) return;
 
         try {
             const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -202,7 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 gainNodeHolotape.gain.setValueAtTime(volAcustico, audioCtx.currentTime);
             }
             if (!sourceNodeHolotape) {
-                sourceNodeHolotape = audioCtx.createMediaElementSource(audioPipboy);
+                sourceNodeHolotape = audioCtx.createMediaElementSource(audioNukeboy);
                 sourceNodeHolotape.connect(analyserNode);
                 analyserNode.connect(gainNodeHolotape);
                 gainNodeHolotape.connect(audioCtx.destination);
@@ -224,16 +229,18 @@ document.addEventListener('DOMContentLoaded', () => {
             canvas.height = targetH;
         }
 
+        const colorOnda = window.pipColorPrimario || '#ff9500';
         const ctx = canvas.getContext('2d');
         const W = canvas.width;
         const H = canvas.height;
         const midY = H / 2;
 
-        ctx.fillStyle = 'rgba(3, 12, 4, 0.42)';
+        ctx.fillStyle = 'rgba(6, 5, 2, 0.42)';
         ctx.fillRect(0, 0, W, H);
 
         ctx.lineWidth = Math.max(1, dpr * 0.8);
-        ctx.strokeStyle = 'rgba(29, 242, 59, 0.10)';
+        ctx.strokeStyle = colorOnda;
+        ctx.globalAlpha = 0.12;
         const pasoGrid = Math.floor(35 * dpr);
         for (let x = pasoGrid; x < W; x += pasoGrid) {
             ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
@@ -242,15 +249,16 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
         }
 
-        ctx.strokeStyle = 'rgba(29, 242, 59, 0.22)';
+        ctx.globalAlpha = 0.25;
         ctx.beginPath();
         ctx.moveTo(0, midY); ctx.lineTo(W, midY); ctx.stroke();
+        ctx.globalAlpha = 1.0;
 
         ctx.save();
         ctx.lineWidth = 2.2 * dpr;
-        ctx.strokeStyle = '#1df23b';
+        ctx.strokeStyle = colorOnda;
         ctx.shadowBlur = 10 * dpr;
-        ctx.shadowColor = '#1df23b';
+        ctx.shadowColor = colorOnda;
         ctx.beginPath();
 
         const factorVolVisual = pctVolumenActual / 100;
@@ -303,7 +311,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function bucleOsciloscopio() {
         if (document.visibilityState !== 'hidden') {
-            const cintaSonando = (fuenteActiva === 'cinta' && audioPipboy && !audioPipboy.paused);
+            const cintaSonando = (fuenteActiva === 'cinta' && audioNukeboy && !audioNukeboy.paused);
             const radioSonando = (fuenteActiva === 'radio' && radioSatelital && !radioSatelital.paused);
 
             if (subPestanaActiva === 'holotapes' && canvasHolotapes) {
@@ -334,7 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function detenerHolocintaPorCompleto() {
         try {
-            audioPipboy.pause();
+            audioNukeboy.pause();
         } catch (e) {}
         if (estadoReproduccion) {
             estadoReproduccion.textContent = playlist.length > 0 ? "[ PAUSED ]" : "[ OFF ]";
@@ -378,7 +386,6 @@ document.addEventListener('DOMContentLoaded', () => {
         displayHoraRadio.textContent = `${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}:${String(ahora.getSeconds()).padStart(2, '0')}`;
     }
     setInterval(actualizarRelojRadio, 1000);
-   
     actualizarRelojRadio();
 
     // ==========================================
@@ -388,8 +395,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!('mediaSession' in navigator)) return;
 
         navigator.mediaSession.metadata = new MediaMetadata({
-            title: titulo || 'PIP-BOY AUDIO',
-            artist: subtitulo || 'RIVCO INDUSTRIES // PIP-OS',
+            title: titulo || 'TERMINAL AUDIO',
+            artist: subtitulo || 'RIVCO INDUSTRIES // OS',
             album: 'BROADCAST SYSTEM'
         });
 
@@ -412,7 +419,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 7. REPRODUCTOR DE HOLOCINTAS LOCALES (CARGA INSTANTÁNEA Y BARRA DE PROGRESO)
+    // 7. REPRODUCTOR DE HOLOCINTAS LOCALES (CON RIEL SEGMENTADO ILUMINADO)
     // ==========================================
     const progressSlider = document.getElementById('progress-slider');
     const tiempoActualEl = document.getElementById('tiempo-actual');
@@ -426,17 +433,25 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
     }
 
-    if (audioPipboy) {
-        audioPipboy.addEventListener('timeupdate', () => {
-            if (usuarioArrastrandoProgreso || !audioPipboy.duration || !isFinite(audioPipboy.duration)) return;
-            const pct = (audioPipboy.currentTime / audioPipboy.duration) * 100;
-            if (progressSlider) progressSlider.value = pct;
-            if (tiempoActualEl) tiempoActualEl.textContent = formatearSegundos(audioPipboy.currentTime);
+    function actualizarProgresoVisual(pct) {
+        const limpio = Math.max(0, Math.min(100, Number(pct) || 0));
+        if (progressSlider) {
+            progressSlider.value = limpio;
+            progressSlider.style.setProperty('--slider-pct', `${limpio}%`);
+        }
+    }
+
+    if (audioNukeboy) {
+        audioNukeboy.addEventListener('timeupdate', () => {
+            if (usuarioArrastrandoProgreso || !audioNukeboy.duration || !isFinite(audioNukeboy.duration)) return;
+            const pct = (audioNukeboy.currentTime / audioNukeboy.duration) * 100;
+            actualizarProgresoVisual(pct);
+            if (tiempoActualEl) tiempoActualEl.textContent = formatearSegundos(audioNukeboy.currentTime);
         });
 
-        audioPipboy.addEventListener('loadedmetadata', () => {
-            if (tiempoDuracionEl) tiempoDuracionEl.textContent = formatearSegundos(audioPipboy.duration);
-            if (progressSlider) progressSlider.value = 0;
+        audioNukeboy.addEventListener('loadedmetadata', () => {
+            if (tiempoDuracionEl) tiempoDuracionEl.textContent = formatearSegundos(audioNukeboy.duration);
+            actualizarProgresoVisual(0);
             if (tiempoActualEl) tiempoActualEl.textContent = "00:00";
         });
     }
@@ -446,15 +461,18 @@ document.addEventListener('DOMContentLoaded', () => {
         progressSlider.addEventListener('touchstart', () => { usuarioArrastrandoProgreso = true; }, { passive: true });
 
         progressSlider.addEventListener('input', (e) => {
-            if (!audioPipboy.duration || !isFinite(audioPipboy.duration)) return;
-            const nuevoTiempo = (parseFloat(e.target.value) / 100) * audioPipboy.duration;
+            const pct = parseFloat(e.target.value) || 0;
+            progressSlider.style.setProperty('--slider-pct', `${pct}%`);
+            if (!audioNukeboy.duration || !isFinite(audioNukeboy.duration)) return;
+            const nuevoTiempo = (pct / 100) * audioNukeboy.duration;
             if (tiempoActualEl) tiempoActualEl.textContent = formatearSegundos(nuevoTiempo);
         });
 
-        const finalizarArrastre = (e) => {
-            if (audioPipboy.duration && isFinite(audioPipboy.duration)) {
-                const nuevoTiempo = (parseFloat(progressSlider.value) / 100) * audioPipboy.duration;
-                audioPipboy.currentTime = nuevoTiempo;
+        const finalizarArrastre = () => {
+            if (audioNukeboy.duration && isFinite(audioNukeboy.duration)) {
+                const pct = parseFloat(progressSlider.value) || 0;
+                audioNukeboy.currentTime = (pct / 100) * audioNukeboy.duration;
+                actualizarProgresoVisual(pct);
             }
             usuarioArrastrandoProgreso = false;
         };
@@ -492,7 +510,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Recibe instantáneamente la lista de canciones desde MainActivity.java en Android
     window.recibirCarpetaHolocintaNativa = function(archivosJSON) {
         try {
             const lista = typeof archivosJSON === 'string' ? JSON.parse(archivosJSON) : archivosJSON;
@@ -515,9 +532,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnCargarCinta && inputCarpeta) {
         btnCargarCinta.addEventListener('click', () => {
-            if (window.AndroidPipBoy && typeof window.AndroidPipBoy.seleccionarCarpetaAudio === 'function') {
+            if (window.AndroidNukeboy && typeof window.AndroidNukeboy.seleccionarCarpetaAudio === 'function') {
                 if (estadoReproduccion) estadoReproduccion.textContent = "[ SCANNING... ]";
-                window.AndroidPipBoy.seleccionarCarpetaAudio();
+                window.AndroidNukeboy.seleccionarCarpetaAudio();
                 return;
             }
             inputCarpeta.value = '';
@@ -531,9 +548,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function obtenerUrlReproduciblePista(pista) {
         if (!pista) return '';
-        // Si es una pista de Android con URI content://, preparamos solo esta pista al instante y la servimos por Capacitor
-        if (pista.uri && window.AndroidPipBoy && typeof window.AndroidPipBoy.prepararPistaIndividual === 'function') {
-            const rutaCache = window.AndroidPipBoy.prepararPistaIndividual(pista.uri, pista.ext || '.mp3');
+        if (pista.uri && window.AndroidNukeboy && typeof window.AndroidNukeboy.prepararPistaIndividual === 'function') {
+            const rutaCache = window.AndroidNukeboy.prepararPistaIndividual(pista.uri, pista.ext || '.mp3');
             if (rutaCache && window.Capacitor && typeof window.Capacitor.convertFileSrc === 'function') {
                 return window.Capacitor.convertFileSrc(rutaCache) + "?t=" + Date.now();
             }
@@ -542,21 +558,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function cargarPistaPorIndice(index) {
-        if (playlist.length === 0 || !audioPipboy) return;
+        if (playlist.length === 0 || !audioNukeboy) return;
         indiceActual = ((index % playlist.length) + playlist.length) % playlist.length;
         
         detenerRadioPorCompleto();
         fuenteActiva = 'cinta';
-        audioPipboy.pause();
+        audioNukeboy.pause();
 
         const pista = playlist[indiceActual];
         const urlFinal = obtenerUrlReproduciblePista(pista);
 
-        audioPipboy.src = urlFinal;
+        audioNukeboy.src = urlFinal;
         aplicarVolumenGlobal(pctVolumenActual);
-        audioPipboy.load();
+        audioNukeboy.load();
         
-        if (progressSlider) progressSlider.value = 0;
+        actualizarProgresoVisual(0);
         if (tiempoActualEl) tiempoActualEl.textContent = "00:00";
         if (tiempoDuracionEl) tiempoDuracionEl.textContent = "00:00";
         actualizarTextoTicker(nombreCancion, pista.nombre);
@@ -567,14 +583,14 @@ document.addEventListener('DOMContentLoaded', () => {
         detenerRadioPorCompleto();
         fuenteActiva = 'cinta';
 
-        if (!audioPipboy.src || audioPipboy.src === window.location.href || audioPipboy.error) {
+        if (!audioNukeboy.src || audioNukeboy.src === window.location.href || audioNukeboy.error) {
             cargarPistaPorIndice(indiceActual);
         }
 
         asegurarAnalizadorHolotape();
         aplicarVolumenGlobal(pctVolumenActual);
 
-        audioPipboy.play().then(() => {
+        audioNukeboy.play().then(() => {
             const pistaActual = playlist[indiceActual].nombre;
             if (estadoReproduccion) estadoReproduccion.textContent = "[ PLAYING ]";
             actualizarTextoTicker(nombreCancion, pistaActual);
@@ -582,7 +598,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }).catch(err => {
             console.warn("Recargando pista actual...", err);
             cargarPistaPorIndice(indiceActual);
-            audioPipboy.play().then(() => {
+            audioNukeboy.play().then(() => {
                 const pistaActual = playlist[indiceActual].nombre;
                 if (estadoReproduccion) estadoReproduccion.textContent = "[ PLAYING ]";
                 actualizarTextoTicker(nombreCancion, pistaActual);
@@ -591,21 +607,24 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // PLAY intacto tal como ya funcionaba
     if (btnPlay) {
         btnPlay.addEventListener('click', () => reproducirHolocintaActual());
     }
 
+    // PAUSE sin doble llamada y con margen de 50ms para que el sonido de parada nunca se corte
     if (btnPause) {
         btnPause.addEventListener('click', () => {
-            if (window.reproducirSonido) window.reproducirSonido('holotape_stop.wav');
-            audioPipboy.pause();
-            if (estadoReproduccion) estadoReproduccion.textContent = "[ PAUSED ]";
-            const tituloActual = nombreCancion ? nombreCancion.textContent : 'PIP-BOY AUDIO';
-            actualizarMediaSession(tituloActual, 'PAUSED', 'paused');
+            setTimeout(() => {
+                audioNukeboy.pause();
+                if (estadoReproduccion) estadoReproduccion.textContent = "[ PAUSED ]";
+                const tituloActual = nombreCancion ? nombreCancion.textContent : 'TERMINAL AUDIO';
+                actualizarMediaSession(tituloActual, 'PAUSED', 'paused');
+            }, 50);
         });
     }
 
-    if (btnNext && audioPipboy) {
+    if (btnNext && audioNukeboy) {
         btnNext.addEventListener('click', () => {
             if (playlist.length === 0) return;
             if (modoShuffle && playlist.length > 1) {
@@ -622,7 +641,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    if (btnPrev && audioPipboy) {
+    if (btnPrev && audioNukeboy) {
         btnPrev.addEventListener('click', () => {
             if (playlist.length === 0) return;
             indiceActual = (indiceActual - 1 + playlist.length) % playlist.length;
@@ -639,8 +658,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    if (audioPipboy) {
-        audioPipboy.addEventListener('ended', () => {
+    if (audioNukeboy) {
+        audioNukeboy.addEventListener('ended', () => {
             if (fuenteActiva === 'cinta' && btnNext) btnNext.click();
         });
     }
@@ -668,7 +687,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 coincidencias.slice(0, 8).forEach(item => {
                     const li = document.createElement('li');
                     li.className = 'sugerencia-item';
-                    li.style.cssText = "padding: 6px 10px; font-size: 0.85rem; cursor: pointer; border-bottom: 1px dotted var(--verde-oscuro); background: rgba(0,20,0,0.9);";
+                    li.style.cssText = "padding: 6px 10px; font-size: 0.85rem; cursor: pointer; border-bottom: 1px dotted var(--verde-oscuro); background: rgba(10,8,4,0.95);";
                     li.textContent = `> ${item.pista.nombre}`;
                     
                     li.addEventListener('click', () => {
@@ -687,7 +706,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 8. RADIO SATELITAL: TRAMPA DE CÓDECS, WATCHDOG EN PANTALLA APAGADA Y FILTRO
+    // 8. RADIO SATELITAL
     // ==========================================
     if (btnPlayRadio) {
         btnPlayRadio.addEventListener('click', () => {
@@ -705,14 +724,15 @@ document.addEventListener('DOMContentLoaded', () => {
             usuarioQuiereRadio = false;
             clearTimeout(timerLimpiezaErrorRadio);
             clearTimeout(timerReconexionRadio);
-            radioSatelital.pause();
-            if (estadoReproduccionRadio) estadoReproduccionRadio.textContent = "[ PAUSED ]";
-            const tituloActual = nombreCancionRadio ? nombreCancionRadio.textContent : 'SATELLITE RADIO';
-            actualizarMediaSession(tituloActual, 'PAUSED', 'paused');
+            setTimeout(() => {
+                radioSatelital.pause();
+                if (estadoReproduccionRadio) estadoReproduccionRadio.textContent = "[ PAUSED ]";
+                const tituloActual = nombreCancionRadio ? nombreCancionRadio.textContent : 'SATELLITE RADIO';
+                actualizarMediaSession(tituloActual, 'PAUSED', 'paused');
+            }, 50);
         });
     }
 
-    // Perro guardián: si la radio se corta o queda en espera con el teléfono bloqueado, reconecta sola
     function programarReconexionRadio() {
         if (!usuarioQuiereRadio || fuenteActiva !== 'radio' || !estacionSonandoActual) return;
         clearTimeout(timerReconexionRadio);
@@ -732,7 +752,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     radioSatelital.addEventListener('pause', () => {
-        // Si el sistema operativo intentó pausar el stream al apagar pantalla pero el usuario no pulsó Pause, reanudar
         if (usuarioQuiereRadio && fuenteActiva === 'radio' && !radioSatelital.ended && !radioSatelital.error) {
             radioSatelital.play().catch(() => programarReconexionRadio());
         }
@@ -759,7 +778,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const listaResultados = document.getElementById('lista-resultados-satelite');
     const listaFavoritos = document.getElementById('lista-favoritos-radio');
     const tituloResultados = document.getElementById('titulo-resultados');
-    const STORAGE_FAVS_KEY = 'pipboy_radio_favs_v1';
+    const STORAGE_FAVS_KEY = 'nukeboy_radio_favs_v1';
 
     let estacionesFavoritas = JSON.parse(localStorage.getItem(STORAGE_FAVS_KEY)) || [];
 
@@ -814,7 +833,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="pip-ticker" style="flex: 1; min-width: 0; display: block; text-align: left; margin-right: 8px;">
                     <span style="cursor: pointer;" class="fav-play ticker-content">> ${fav.name}</span>
                 </div>
-                <button class="btn-quitar-fav" style="background:transparent; border:none; color:var(--verde-pipboy); cursor:pointer; font-family:inherit; flex-shrink: 0;">[♥]</button>`;
+                <button class="btn-quitar-fav" style="background:transparent; border:none; color:var(--verde-nukeboy); cursor:pointer; font-family:inherit; flex-shrink: 0;">[♥]</button>`;
 
             li.querySelector('.fav-play').addEventListener('click', () => sintonizarEstacion(fav.name, fav.url, false));
             
@@ -904,7 +923,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span class="tun-in-click ticker-content" style="cursor: pointer;">> ${paisEstacion} ${nombre}</span> 
                 </div>
                 <div style="display: flex; gap: 6px; align-items: center; flex-shrink: 0;">
-                    <button class="btn-fav-toggle" style="background:transparent; border:none; color:var(--verde-pipboy); cursor:pointer; font-family:inherit;" title="Favorite">${corazonIcono}</button>
+                    <button class="btn-fav-toggle" style="background:transparent; border:none; color:var(--verde-nukeboy); cursor:pointer; font-family:inherit;" title="Favorite">${corazonIcono}</button>
                     <span class="tun-in-click" style="font-size: 0.7rem; opacity: 0.7; cursor: pointer;">[ TUN IN ]</span>
                 </div>`;
 
@@ -932,7 +951,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const consulta = inputBusquedaSatelite ? inputBusquedaSatelite.value.trim().toLowerCase() : '';
 
         if (listaResultados) {
-            listaResultados.innerHTML = '<li style="font-size: 0.75rem; color: var(--verde-pipboy); padding: 4px 0;">> SCANNING SATELLITE FREQUENCIES...</li>';
+            listaResultados.innerHTML = '<li style="font-size: 0.75rem; color: var(--verde-nukeboy); padding: 4px 0;">> SCANNING SATELLITE FREQUENCIES...</li>';
         }
 
         try {
